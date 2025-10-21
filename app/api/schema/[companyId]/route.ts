@@ -42,11 +42,15 @@ export async function PUT(
     return new NextResponse("Invalid body", { status: 400 });
   }
 
-  const saved = await prisma.companyPostFieldSchema.upsert({
-    where: { companyId },
-    update: { schemaJson: body.schema },
-    create: { companyId, schemaJson: body.schema },
-  });
+  const existing = await prisma.companyPostFieldSchema.findFirst({ where: { companyId } });
+  const saved = existing
+    ? await prisma.companyPostFieldSchema.update({
+        where: { id: existing.id },
+        data: { schemaJson: body.schema },
+      })
+    : await prisma.companyPostFieldSchema.create({
+        data: { companyId, schemaJson: body.schema },
+      });
 
   return NextResponse.json({ ok: true, updatedAt: saved.updatedAt });
 }
