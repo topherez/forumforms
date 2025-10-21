@@ -6,9 +6,14 @@
 		"dev": "whop-proxy --command 'next dev --turbopack'",
 		"build": "next build",
 		"start": "next start",
-		"lint": "next lint"
+		"lint": "next lint",
+		"prisma:generate": "prisma generate",
+		"prisma:migrate": "prisma migrate deploy",
+		"prisma:migrate-dev": "prisma migrate dev",
+		"prisma:studio": "prisma studio"
 	},
 	"dependencies": {
+		"@prisma/client": "^6.17.1",
 		"@vercel/functions": "^2.0.3",
 		"@whop/api": "^0.0.50",
 		"@whop/react": "0.2.36",
@@ -24,6 +29,7 @@
 		"@types/react-dom": "^19",
 		"@whop-apps/dev-proxy": "0.0.1-canary.116",
 		"dotenv-cli": "^8.0.0",
+		"prisma": "^6.17.1",
 		"tailwindcss": "^4",
 		"typescript": "^5"
 	},

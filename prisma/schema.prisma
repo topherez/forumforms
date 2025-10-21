@@ -1,0 +1,39 @@
+// Datasource: Supabase Postgres
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Generator: Prisma Client
+generator client {
+  provider = "prisma-client-js"
+}
+
+/// A creator's customizable schema for forum post fields, scoped to a company.
+model CompanyPostFieldSchema {
+  id         String   @id @default(cuid())
+  companyId  String   @db.VarChar(64)
+  schemaJson Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([companyId])
+  @@map("company_post_field_schemas")
+}
+
+/// Metadata captured for a specific forum post based on a company's schema.
+model PostMetadata {
+  id               String   @id @default(cuid())
+  postId           String   @db.VarChar(64)
+  companyId        String   @db.VarChar(64)
+  createdByUserId  String   @db.VarChar(64)
+  dataJson         Json
+  createdAt        DateTime @default(now())
+
+  @@index([postId])
+  @@index([companyId])
+  @@map("post_metadata")
+}
+
+
