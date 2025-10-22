@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { Suspense } from "react";
 import SchemaBuilderClient from "./SchemaBuilderClient";
+import { prisma } from "@/lib/prisma";
 
 export default async function DashboardPage({
 	params,
@@ -59,10 +60,8 @@ export default async function DashboardPage({
 }
 
 async function SchemaEditor({ companyId }: { companyId: string }) {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/schema/${companyId}`, {
-        cache: "no-store",
-    });
-    const data = await res.json().catch(() => ({ schema: { fields: [] } }));
+    const existing = await prisma.companyPostFieldSchema.findFirst({ where: { companyId } });
+    const data = { schema: existing?.schemaJson ?? { fields: [] } } as const;
 
     return (
         <Suspense>
