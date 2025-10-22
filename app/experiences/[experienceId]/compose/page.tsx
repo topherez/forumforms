@@ -21,9 +21,20 @@ export default async function ComposePage({
     );
   }
 
-  // Resolve the companyId from the experience
+  // Resolve the companyId from the experience. The SDK type may not expose this field directly.
   const experience = await whopSdk.experiences.getExperience({ experienceId });
-  const companyId = experience.company_id;
+  const companyId =
+    (experience as any)?.companyId ??
+    (experience as any)?.company_id ??
+    process.env.NEXT_PUBLIC_WHOP_COMPANY_ID;
+
+  if (!companyId) {
+    return (
+      <div className="p-6 text-sm text-red-600">
+        Unable to determine companyId for this experience. Please set NEXT_PUBLIC_WHOP_COMPANY_ID or ensure the experience includes a company reference.
+      </div>
+    );
+  }
 
   const schema = await prisma.companyPostFieldSchema.findFirst({
     where: { companyId },
