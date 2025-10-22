@@ -50,10 +50,8 @@ export default async function DashboardPage({
                 <p className="text-sm text-gray-500">Only admins can edit the post field schema.</p>
             )}
 
-            <div className="mt-10">
-                <Link href={`/experiences/${company.experience_id}/compose`} className="text-blue-600 underline">
-                    Go to Post Composer
-                </Link>
+            <div className="mt-10 text-sm text-gray-500">
+                Open an experience to compose a post with custom fields.
             </div>
         </div>
     );
