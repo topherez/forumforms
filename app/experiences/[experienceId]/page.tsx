@@ -23,6 +23,10 @@ export default async function ExperiencePage({
 
 	const user = await whopSdk.users.getUser({ userId });
 const experience = await whopSdk.experiences.getExperience({ experienceId });
+const companyIdFromExperience =
+  (experience as any)?.companyId ??
+  (experience as any)?.company_id ??
+  process.env.NEXT_PUBLIC_WHOP_COMPANY_ID;
 
 	// Either: 'admin' | 'customer' | 'no_access';
 	// 'admin' means the user is an admin of the whop, such as an owner or moderator
@@ -50,6 +54,15 @@ const experience = await whopSdk.experiences.getExperience({ experienceId });
 					className="px-4 py-2 rounded bg-blue-600 text-white"
 				>
 					Compose a Post with Custom Fields
+				</Link>
+			)}
+
+			{accessLevel === "admin" && companyIdFromExperience && (
+				<Link
+					href={`/dashboard/${companyIdFromExperience}`}
+					className="px-4 py-2 rounded border border-gray-300 text-white/90"
+				>
+					Go to Schema Dashboard
 				</Link>
 			)}
 		</div>
