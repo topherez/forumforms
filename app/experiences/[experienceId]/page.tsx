@@ -1,5 +1,6 @@
 import { whopSdk } from "@/lib/whop-sdk";
 import { headers } from "next/headers";
+import Link from "next/link";
 
 export default async function ExperiencePage({
 	params,
@@ -21,7 +22,7 @@ export default async function ExperiencePage({
 	});
 
 	const user = await whopSdk.users.getUser({ userId });
-	const experience = await whopSdk.experiences.getExperience({ experienceId });
+const experience = await whopSdk.experiences.getExperience({ experienceId });
 
 	// Either: 'admin' | 'customer' | 'no_access';
 	// 'admin' means the user is an admin of the whop, such as an owner or moderator
@@ -30,7 +31,7 @@ export default async function ExperiencePage({
 	const { accessLevel } = result;
 
 	return (
-		<div className="flex justify-center items-center h-screen px-8">
+		<div className="flex flex-col gap-6 justify-center items-center h-screen px-8 text-center">
 			<h1 className="text-xl">
 				Hi <strong>{user.name}</strong>, you{" "}
 				<strong>{result.hasAccess ? "have" : "do not have"} access</strong> to
@@ -42,6 +43,15 @@ export default async function ExperiencePage({
 				<br />
 				You are viewing the experience: <strong>{experience.name}</strong>
 			</h1>
+
+			{result.hasAccess && (
+				<Link
+					href={`/experiences/${experienceId}/compose`}
+					className="px-4 py-2 rounded bg-blue-600 text-white"
+				>
+					Compose a Post with Custom Fields
+				</Link>
+			)}
 		</div>
 	);
 }
