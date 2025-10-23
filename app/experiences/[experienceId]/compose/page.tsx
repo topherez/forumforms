@@ -1,6 +1,7 @@
 import { whopSdk } from "@/lib/whop-sdk";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { createForumPost } from "@/lib/forum-service";
 import { redirect } from "next/navigation";
 
@@ -99,7 +100,7 @@ function FormClient({
           postId: created.postId,
           companyId: formCompanyId,
           createdByUserId: verifiedUserId,
-          dataJson: data,
+          dataJson: data as Prisma.InputJsonValue,
         },
       });
       redirect(`/posts/${encodeURIComponent(created.postId)}`);
@@ -110,7 +111,7 @@ function FormClient({
         postId: `temp_${Date.now()}`,
         companyId: formCompanyId,
         createdByUserId: verifiedUserId,
-        dataJson: data,
+        dataJson: data as Prisma.InputJsonValue,
       },
     });
     redirect(`/posts/${encodeURIComponent(temp.id)}?attach=1`);
