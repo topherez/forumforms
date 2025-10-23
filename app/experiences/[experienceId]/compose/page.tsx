@@ -79,9 +79,10 @@ function FormClient({
   async function onSubmit(formData: FormData) {
     "use server";
     const data: Record<string, unknown> = {};
-    for (const field of fields) {
-      const key = String(field.key ?? field.name);
-      data[key] = formData.get(key);
+    // Build data from all form entries except the reserved composer fields
+    for (const [k, v] of formData.entries()) {
+      if (k === "__title" || k === "__content") continue;
+      data[k] = v as unknown as string;
     }
     const title = String(formData.get("__title") ?? "Untitled");
     const content = String(formData.get("__content") ?? "");
