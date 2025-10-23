@@ -18,13 +18,22 @@ export async function createForumPost(
   args: CreateForumPostArgs,
 ): Promise<CreateForumPostResult | null> {
   const { forumId, title, content, userId } = args;
+  void userId; // whopSdk authenticates via headers; user context is verified upstream
 
-  // Example integration once available:
-  // const res = await whopSdk.forums.createPost({ forumId, title, content, userId });
-  // return { postId: res.postId, postUrl: res.url };
+  try {
+    // Whop SDK exposes a createForumPost mutation; use forum experience id and content.
+    // Title support varies; include it in content if the API doesn't accept a title.
+    const payload: any = { forumExperienceId: forumId, content: content || title || "" };
+    if (title) payload.title = title;
 
-  // For now, return null to trigger the fallback path.
-  void forumId; void title; void content; void userId;
+    const res: any = await (whopSdk as any).forums.createForumPost(payload);
+    const created: any = res?.createForumPost ?? res;
+    const postId: string | undefined = created?.id ?? created?.postId;
+    const postUrl: string | undefined = created?.url ?? created?.postUrl;
+    if (postId) return { postId, postUrl };
+  } catch (err) {
+    // Swallow and allow caller to fallback
+  }
   return null;
 }
 
