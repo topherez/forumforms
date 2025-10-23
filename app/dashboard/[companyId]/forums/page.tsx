@@ -19,7 +19,9 @@ export default async function ForumsBindingPage({
   const existing = await prisma.forumBinding.findFirst({ where: { companyId, enabled: true } });
   if (!existing) {
     try {
-      const resp: any = await (whopSdk as any).experiences.listExperiences({ first: 25 });
+      const sdkAny: any = whopSdk as any;
+      const scoped = typeof sdkAny.withCompany === "function" ? sdkAny.withCompany(companyId) : sdkAny;
+      const resp: any = await scoped.experiences.listExperiences({ first: 50 });
       const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
       const forumExp = nodes.find((e: any) =>
         (e?.type && String(e.type).toLowerCase().includes("forum")) ||
@@ -42,7 +44,10 @@ export default async function ForumsBindingPage({
       <h1 className="text-xl font-semibold">Forum Bindings</h1>
       <p className="text-sm text-gray-600">Bind your Whop forum(s) to this app.</p>
       {/* Simple manual bind UI for now */}
-      <BindForm companyId={companyId} />
+      <div className="flex items-center gap-3">
+        <BindForm companyId={companyId} />
+        <AutoBindButton companyId={companyId} />
+      </div>
       <BindingsList companyId={companyId} />
     </div>
   );
@@ -60,6 +65,36 @@ async function BindingsList({ companyId }: { companyId: string }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function AutoBindButton({ companyId }: { companyId: string }) {
+  async function onAuto() {
+    "use server";
+    const sdkAny: any = whopSdk as any;
+    const scoped = typeof sdkAny.withCompany === "function" ? sdkAny.withCompany(companyId) : sdkAny;
+    try {
+      const resp: any = await scoped.experiences.listExperiences({ first: 50 });
+      const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
+      const forumExp = nodes.find((e: any) =>
+        (e?.type && String(e.type).toLowerCase().includes("forum")) ||
+        (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
+        (e?.name && String(e.name).toLowerCase().includes("forum"))
+      );
+      const expId: string | undefined = forumExp?.id ?? forumExp?.experienceId;
+      if (expId?.startsWith("exp_")) {
+        await prisma.forumBinding.upsert({
+          where: { companyId_forumId: { companyId, forumId: expId } },
+          update: { enabled: true },
+          create: { companyId, forumId: expId, enabled: true },
+        });
+      }
+    } catch {}
+  }
+  return (
+    <form action={onAuto}>
+      <button type="submit" className="px-3 py-2 border rounded">Auto-bind forum</button>
+    </form>
   );
 }
 
