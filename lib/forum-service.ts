@@ -33,8 +33,8 @@ export async function createForumPost(
 
     const res: any = await client.forums.createForumPost(payload);
     const created: any = res?.createForumPost ?? res;
-    const postId: string | undefined = created?.id ?? created?.postId;
-    const postUrl: string | undefined = created?.url ?? created?.postUrl;
+    const postId: string | undefined = created?.id ?? created?.postId ?? created?.post?.id;
+    const postUrl: string | undefined = created?.url ?? created?.postUrl ?? created?.post?.url;
     if (postId) return { postId, postUrl };
   } catch (err) {
     // Swallow and allow caller to fallback

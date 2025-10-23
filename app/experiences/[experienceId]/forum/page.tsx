@@ -24,7 +24,8 @@ export default async function ForumViewerPage({
   // Best-effort: list recent posts using the SDK’s forums feed if available
   let posts: Array<{ id: string; content?: string | null }> = [];
   try {
-    const res: any = await (whopSdk as any).forums.listForumPostsFromForum({ experienceId });
+    // Use the BOUND forum experience id (not this wrapper app's experience id)
+    const res: any = await (whopSdk as any).forums.listForumPostsFromForum({ experienceId: binding.forumId });
     const items: any[] = Array.isArray(res?.nodes ?? res) ? (res.nodes ?? res) : [];
     posts = items.map((p: any) => ({ id: p?.id ?? "", content: p?.content ?? p?.title ?? "" })).filter((p) => p.id);
   } catch {
