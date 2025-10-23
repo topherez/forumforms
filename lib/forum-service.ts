@@ -22,7 +22,11 @@ export async function createForumPost(
   try {
     // Whop SDK exposes a createForumPost mutation; use forum experience id and content.
     // Title support varies; include it in content if the API doesn't accept a title.
-    const payload: any = { forumExperienceId: forumId, content: content || title || "" };
+    const payload: any = {
+      forumExperienceId: forumId,
+      content: (title ? `${title}\n\n` : "") + (content || ""),
+      isMention: false,
+    };
     if (title) payload.title = title;
 
     // Execute as the member so posts are authored by the user
@@ -35,9 +39,13 @@ export async function createForumPost(
     const created: any = res?.createForumPost ?? res;
     const postId: string | undefined = created?.id ?? created?.postId ?? created?.post?.id;
     const postUrl: string | undefined = created?.url ?? created?.postUrl ?? created?.post?.url;
-    if (postId) return { postId, postUrl };
+    if (postId) {
+      console.log("[forum-service] createForumPost succeeded", { forumId, postId, postUrl });
+      return { postId, postUrl };
+    }
+    console.warn("[forum-service] createForumPost returned no id", { forumId, resultKeys: Object.keys(created || {}) });
   } catch (err) {
-    // Swallow and allow caller to fallback
+    console.error("[forum-service] createForumPost error", { forumId, error: err });
   }
   return null;
 }
