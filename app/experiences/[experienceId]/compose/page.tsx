@@ -1,6 +1,7 @@
 import { whopSdk } from "@/lib/whop-sdk";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { createForumPost } from "@/lib/forum-service";
 import { redirect } from "next/navigation";
 
 export default async function ComposePage({
@@ -89,18 +90,30 @@ function FormClient({
     const formForumId = String(formData.get("__forumId") ?? "");
     const formCompanyId = String(formData.get("__companyId") ?? "");
 
-    const res = await fetch(`/api/forum/${formForumId}/posts`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ companyId: formCompanyId, title, content, fieldsData: data }),
+    const headersList = await headers();
+    const { userId: verifiedUserId } = await whopSdk.verifyUserToken(headersList);
+    const created = await createForumPost({ forumId: formForumId, title, content, userId: verifiedUserId });
+    if (created?.postId) {
+      await prisma.postMetadata.create({
+        data: {
+          postId: created.postId,
+          companyId: formCompanyId,
+          createdByUserId: verifiedUserId,
+          dataJson: data,
+        },
+      });
+      redirect(`/posts/${encodeURIComponent(created.postId)}`);
+    }
+    // Fallback: temp record
+    const temp = await prisma.postMetadata.create({
+      data: {
+        postId: `temp_${Date.now()}`,
+        companyId: formCompanyId,
+        createdByUserId: verifiedUserId,
+        dataJson: data,
+      },
     });
-    const json = await res.json().catch(() => null);
-    if (json?.postId) {
-      redirect(`/posts/${encodeURIComponent(json.postId)}`);
-    }
-    if (json?.tempId) {
-      redirect(`/posts/${encodeURIComponent(json.tempId)}?attach=1`);
-    }
+    redirect(`/posts/${encodeURIComponent(temp.id)}?attach=1`);
   }
 
   return (
