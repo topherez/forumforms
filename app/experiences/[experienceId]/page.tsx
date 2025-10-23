@@ -58,12 +58,20 @@ const companyIdFromExperience =
 			)}
 
 			{accessLevel === "admin" && companyIdFromExperience && (
-				<Link
-					href={`/dashboard/${companyIdFromExperience}`}
-					className="px-4 py-2 rounded border border-gray-300 text-white/90"
-				>
-					Go to Schema Dashboard
-				</Link>
+				<div className="flex gap-3">
+					<Link
+						href={`/dashboard/${companyIdFromExperience}`}
+						className="px-4 py-2 rounded border border-gray-300 text-white/90"
+					>
+						Go to Schema Dashboard
+					</Link>
+					<Link
+						href={`/dashboard/${companyIdFromExperience}/forums`}
+						className="px-4 py-2 rounded border border-gray-300 text-white/90"
+					>
+						Manage Forum Bindings
+					</Link>
+				</div>
 			)}
 		</div>
 	);
