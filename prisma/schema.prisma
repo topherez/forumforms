@@ -36,4 +36,18 @@ model PostMetadata {
   @@map("post_metadata")
 }
 
+/// Which Whop forum(s) a company has bound to this wrapper.
+model ForumBinding {
+  id         String   @id @default(cuid())
+  companyId  String   @db.VarChar(64)
+  forumId    String   @db.VarChar(64)
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([companyId, forumId])
+  @@index([companyId])
+  @@map("forum_bindings")
+}
+
 

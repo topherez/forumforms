@@ -46,4 +46,29 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ ok: true, id: saved.id });
 }
 
+export async function PATCH(req: NextRequest) {
+  const headersList = await headers();
+  const { userId } = await whopSdk.verifyUserToken(headersList);
+  const body = await req.json().catch(() => null);
+
+  if (!body || typeof body !== "object" || !body.id || !body.postUrl) {
+    return new NextResponse("Invalid body", { status: 400 });
+  }
+
+  const existing = await prisma.postMetadata.findUnique({ where: { id: String(body.id) } });
+  if (!existing) return new NextResponse("Not found", { status: 404 });
+
+  const access = await whopSdk.access.checkIfUserHasAccessToCompany({
+    userId,
+    companyId: existing.companyId,
+  });
+  if (!access.hasAccess) return new NextResponse("Forbidden", { status: 403 });
+
+  const updated = await prisma.postMetadata.update({
+    where: { id: existing.id },
+    data: { postId: String(body.postUrl) },
+  });
+  return NextResponse.json({ ok: true, id: updated.id });
+}
+
 
