@@ -81,16 +81,18 @@ function FormClient({
     const data: Record<string, unknown> = {};
     // Build data from all form entries except the reserved composer fields
     for (const [k, v] of formData.entries()) {
-      if (k === "__title" || k === "__content") continue;
+      if (k === "__title" || k === "__content" || k === "__forumId" || k === "__companyId") continue;
       data[k] = v as unknown as string;
     }
     const title = String(formData.get("__title") ?? "Untitled");
     const content = String(formData.get("__content") ?? "");
+    const formForumId = String(formData.get("__forumId") ?? "");
+    const formCompanyId = String(formData.get("__companyId") ?? "");
 
-    const res = await fetch(`/api/forum/${forumId}/posts`, {
+    const res = await fetch(`/api/forum/${formForumId}/posts`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ companyId, title, content, fieldsData: data }),
+      body: JSON.stringify({ companyId: formCompanyId, title, content, fieldsData: data }),
     });
     const json = await res.json().catch(() => null);
     if (json?.postId) {
@@ -103,6 +105,8 @@ function FormClient({
 
   return (
     <form action={onSubmit} className="space-y-4">
+      <input type="hidden" name="__forumId" defaultValue={forumId} />
+      <input type="hidden" name="__companyId" defaultValue={companyId} />
       <div className="flex flex-col gap-1">
         <label className="text-sm font-medium">Title</label>
         <input name="__title" className="border rounded px-3 py-2" placeholder="Post title" />
