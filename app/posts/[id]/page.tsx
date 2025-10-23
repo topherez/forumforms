@@ -5,10 +5,14 @@ export default async function PostDetailsPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ attach?: string }>;
+  searchParams?: { [key: string]: string | string[] | undefined };
 }) {
   const { id } = await params;
-  const attach = (await (searchParams ?? Promise.resolve({})))?.attach;
+  const attach = typeof searchParams?.attach === "string"
+    ? (searchParams.attach as string)
+    : Array.isArray(searchParams?.attach)
+    ? (searchParams!.attach![0] as string)
+    : undefined;
   const meta = await prisma.postMetadata.findUnique({ where: { id } });
 
   if (!meta) {
