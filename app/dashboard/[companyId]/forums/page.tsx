@@ -15,6 +15,28 @@ export default async function ForumsBindingPage({
     return <div className="p-6">Admins only.</div>;
   }
 
+  // If no binding exists, try to auto-detect a forum experience and bind it once for convenience
+  const existing = await prisma.forumBinding.findFirst({ where: { companyId, enabled: true } });
+  if (!existing) {
+    try {
+      const resp: any = await (whopSdk as any).experiences.listExperiences({ first: 25 });
+      const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
+      const forumExp = nodes.find((e: any) =>
+        (e?.type && String(e.type).toLowerCase().includes("forum")) ||
+        (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
+        (e?.name && String(e.name).toLowerCase().includes("forum"))
+      );
+      const expId: string | undefined = forumExp?.id ?? forumExp?.experienceId;
+      if (expId?.startsWith("exp_")) {
+        await prisma.forumBinding.upsert({
+          where: { companyId_forumId: { companyId, forumId: expId } },
+          update: { enabled: true },
+          create: { companyId, forumId: expId, enabled: true },
+        });
+      }
+    } catch {}
+  }
+
   return (
     <div className="max-w-2xl mx-auto p-6 space-y-4">
       <h1 className="text-xl font-semibold">Forum Bindings</h1>

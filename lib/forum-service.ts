@@ -18,7 +18,6 @@ export async function createForumPost(
   args: CreateForumPostArgs,
 ): Promise<CreateForumPostResult | null> {
   const { forumId, title, content, userId } = args;
-  void userId; // whopSdk authenticates via headers; user context is verified upstream
 
   try {
     // Whop SDK exposes a createForumPost mutation; use forum experience id and content.
@@ -26,7 +25,13 @@ export async function createForumPost(
     const payload: any = { forumExperienceId: forumId, content: content || title || "" };
     if (title) payload.title = title;
 
-    const res: any = await (whopSdk as any).forums.createForumPost(payload);
+    // Execute as the member so posts are authored by the user
+    const sdkAny: any = whopSdk as any;
+    const client = typeof sdkAny.withUser === "function" && userId
+      ? sdkAny.withUser(userId)
+      : sdkAny;
+
+    const res: any = await client.forums.createForumPost(payload);
     const created: any = res?.createForumPost ?? res;
     const postId: string | undefined = created?.id ?? created?.postId;
     const postUrl: string | undefined = created?.url ?? created?.postUrl;
