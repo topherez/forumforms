@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { whopSdk } from "@/lib/whop-sdk";
+import { prisma } from "@/lib/prisma";
 
 export default async function ForumsBindingPage({
   params,
@@ -26,18 +27,14 @@ export default async function ForumsBindingPage({
 }
 
 async function BindingsList({ companyId }: { companyId: string }) {
-  const res = await fetch(`/api/bindings/${companyId}`, { cache: "no-store" });
-  const data = await res.json();
-  const bindings = (data.bindings ?? []) as Array<{ forumId: string }>;
+  const bindings = await prisma.forumBinding.findMany({ where: { companyId, enabled: true } });
   if (bindings.length === 0) return <div className="text-sm text-gray-500">No bindings.</div>;
   return (
     <ul className="list-disc pl-5">
       {bindings.map((b, i) => (
         <li key={i} className="flex items-center gap-3 text-sm">
           <span>Forum: {b.forumId}</span>
-          <form action={`/api/bindings/${companyId}?forumId=${encodeURIComponent(b.forumId)}`} method="delete">
-            <button className="text-red-600">Remove</button>
-          </form>
+          <RemoveBindingForm companyId={companyId} forumId={b.forumId} />
         </li>
       ))}
     </ul>
@@ -59,10 +56,15 @@ function BindForm({ companyId }: { companyId: string }) {
     } catch {
       // not a URL; assume they pasted the slug directly
     }
-    await fetch(`/api/bindings/${companyId}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ forumId }),
+    const headersList = await headers();
+    const { userId } = await whopSdk.verifyUserToken(headersList);
+    const access = await whopSdk.access.checkIfUserHasAccessToCompany({ userId, companyId });
+    if (!access.hasAccess || access.accessLevel !== "admin") return;
+
+    await prisma.forumBinding.upsert({
+      where: { companyId_forumId: { companyId, forumId } },
+      update: { enabled: true },
+      create: { companyId, forumId, enabled: true },
     });
   }
 
@@ -73,6 +75,22 @@ function BindForm({ companyId }: { companyId: string }) {
         <input name="forumIdOrUrl" className="w-full border rounded px-2 py-1" placeholder="https://whop.com/joined/.../forums-xxxx or forums-xxxx" />
       </div>
       <button type="submit" className="px-3 py-2 bg-blue-600 text-white rounded">Bind</button>
+    </form>
+  );
+}
+
+function RemoveBindingForm({ companyId, forumId }: { companyId: string; forumId: string }) {
+  async function onRemove() {
+    "use server";
+    const headersList = await headers();
+    const { userId } = await whopSdk.verifyUserToken(headersList);
+    const access = await whopSdk.access.checkIfUserHasAccessToCompany({ userId, companyId });
+    if (!access.hasAccess || access.accessLevel !== "admin") return;
+    await prisma.forumBinding.updateMany({ where: { companyId, forumId }, data: { enabled: false } });
+  }
+  return (
+    <form action={onRemove}>
+      <button className="text-red-600">Remove</button>
     </form>
   );
 }
