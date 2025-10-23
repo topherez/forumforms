@@ -57,6 +57,15 @@ const companyIdFromExperience =
 				</Link>
 			)}
 
+			{result.hasAccess && (
+				<Link
+					href={`/experiences/${experienceId}/forum`}
+					className="px-4 py-2 rounded border border-gray-300 text-white/90"
+				>
+					Open Forum Viewer
+				</Link>
+			)}
+
 			{accessLevel === "admin" && companyIdFromExperience && (
 				<div className="flex gap-3">
 					<Link
