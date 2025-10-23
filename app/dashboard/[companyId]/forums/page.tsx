@@ -78,15 +78,30 @@ function BindForm({ companyId }: { companyId: string }) {
     } catch {
       // not a URL; assume they pasted the slug directly
     }
+
+    // If we received a forums-* slug, resolve it to an experience (exp_*) id
+    let resolvedForumId = forumId;
+    if (forumId.startsWith("forums-")) {
+      try {
+        const resp: any = await (whopSdk as any).experiences.listExperiences({ first: 50 });
+        const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
+        const hit = nodes.find((e: any) =>
+          String(e?.slug ?? "").toLowerCase() === forumId.toLowerCase() ||
+          String(e?.name ?? "").toLowerCase() === forumId.toLowerCase()
+        );
+        const expId: string | undefined = hit?.id ?? hit?.experienceId;
+        if (expId?.startsWith("exp_")) resolvedForumId = expId;
+      } catch {}
+    }
     const headersList = await headers();
     const { userId } = await whopSdk.verifyUserToken(headersList);
     const access = await whopSdk.access.checkIfUserHasAccessToCompany({ userId, companyId });
     if (!access.hasAccess || access.accessLevel !== "admin") return;
 
     await prisma.forumBinding.upsert({
-      where: { companyId_forumId: { companyId, forumId } },
+      where: { companyId_forumId: { companyId, forumId: resolvedForumId } },
       update: { enabled: true },
-      create: { companyId, forumId, enabled: true },
+      create: { companyId, forumId: resolvedForumId, enabled: true },
     });
   }
 

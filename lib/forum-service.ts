@@ -27,6 +27,7 @@ export async function createForumPost(
       content: (title ? `${title}\n\n` : "") + (content || ""),
       isMention: false,
     };
+    // The REST docs indicate experience_id + (title or content) are required — ensure at least one
     if (title) payload.title = title;
 
     // Execute as the member so posts are authored by the user
