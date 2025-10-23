@@ -47,8 +47,18 @@ async function BindingsList({ companyId }: { companyId: string }) {
 function BindForm({ companyId }: { companyId: string }) {
   async function onBind(formData: FormData) {
     "use server";
-    const forumId = String(formData.get("forumId") ?? "").trim();
-    if (!forumId) return;
+    const raw = String(formData.get("forumIdOrUrl") ?? "").trim();
+    if (!raw) return;
+    // Accept either a full URL or a slug like forums-xxxxx
+    let forumId = raw;
+    try {
+      const url = new URL(raw);
+      // Expect something like .../forums-<slug>/...
+      const match = url.pathname.match(/\/(forums-[A-Za-z0-9]+)(?:[\/?]|$)/);
+      if (match?.[1]) forumId = match[1];
+    } catch {
+      // not a URL; assume they pasted the slug directly
+    }
     await fetch(`/api/bindings/${companyId}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -59,8 +69,8 @@ function BindForm({ companyId }: { companyId: string }) {
   return (
     <form action={onBind} className="flex items-end gap-3">
       <div className="flex-1">
-        <label className="text-xs text-gray-500">Forum ID</label>
-        <input name="forumId" className="w-full border rounded px-2 py-1" placeholder="forum_..." />
+        <label className="text-xs text-gray-500">Forum URL or ID</label>
+        <input name="forumIdOrUrl" className="w-full border rounded px-2 py-1" placeholder="https://whop.com/joined/.../forums-xxxx or forums-xxxx" />
       </div>
       <button type="submit" className="px-3 py-2 bg-blue-600 text-white rounded">Bind</button>
     </form>
