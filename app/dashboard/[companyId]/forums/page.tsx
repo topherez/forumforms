@@ -21,14 +21,15 @@ export default async function ForumsBindingPage({
     try {
       const sdkAny: any = whopSdk as any;
       const scoped = typeof sdkAny.withCompany === "function" ? sdkAny.withCompany(companyId) : sdkAny;
-      const resp: any = await scoped.experiences.listExperiences({ first: 50 });
-      const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
+      const resp: any = await scoped.experiences.listExperiences({ first: 50, companyId });
+      // The SDK returns company.experiencesV2.nodes
+      const companies = resp?.company ?? resp;
+      const nodes: any[] = companies?.experiencesV2?.nodes ?? resp?.nodes ?? [];
       const forumExp = nodes.find((e: any) =>
-        (e?.type && String(e.type).toLowerCase().includes("forum")) ||
-        (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
-        (e?.name && String(e.name).toLowerCase().includes("forum"))
+        String(e?.app?.name ?? e?.name ?? "").toLowerCase().includes("forum") ||
+        String(e?.route ?? e?.slug ?? "").toLowerCase().includes("forums-")
       );
-      const expId: string | undefined = forumExp?.id ?? forumExp?.experienceId;
+      const expId: string | undefined = forumExp?.id ?? forumExp?.experienceId ?? forumExp?.experience?.experienceId;
       if (expId?.startsWith("exp_")) {
         await prisma.forumBinding.upsert({
           where: { companyId_forumId: { companyId, forumId: expId } },
