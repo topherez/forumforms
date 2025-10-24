@@ -93,7 +93,7 @@ function FormClient({
 
     const headersList = await headers();
     const { userId: verifiedUserId } = await whopSdk.verifyUserToken(headersList);
-    const created = await createForumPost({ forumId: formForumId, title, content, userId: verifiedUserId });
+    const created = await createForumPost({ forumId: formForumId, title, content, userId: verifiedUserId, companyId });
     if (created?.postId) {
       await prisma.postMetadata.create({
         data: {
