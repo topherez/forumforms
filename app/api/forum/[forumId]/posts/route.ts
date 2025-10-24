@@ -21,7 +21,7 @@ export async function POST(
   if (!access.hasAccess) return new NextResponse("Forbidden", { status: 403 });
 
   // Try real forum creation first
-  const created = await createForumPost({ forumId, title: String(body.title), content: String(body.content), userId });
+  const created = await createForumPost({ forumId, title: String(body.title), content: String(body.content), userId, companyId: String(body.companyId) });
   if (created) {
     await prisma.postMetadata.create({
       data: {
