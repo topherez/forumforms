@@ -23,16 +23,24 @@ export default async function ForumViewerPage({
 
   // List posts from the bound forum experience
   let posts: Array<{ id: string; content?: string | null; authorId?: string | null }> = [];
+  let rawResponse: any = null;
+  let debugError: Error | null = null;
   try {
+    console.log("[ForumViewer] calling listForumPostsFromForum", { bindingForumId: binding.forumId });
     const res: any = await whopSdk.forums.listForumPostsFromForum({ experienceId: binding.forumId });
+    rawResponse = res;
+    console.log("[ForumViewer] raw response", { res, keys: Object.keys(res || {}) });
     const feed = res?.feedPosts;
+    console.log("[ForumViewer] feed", { feed, keys: Object.keys(feed || {}) });
     const items: any[] = feed?.nodes ?? [];
+    console.log("[ForumViewer] items", { itemsCount: items.length, items });
     posts = items.map((p: any) => ({
       id: p?.id ?? "",
       content: p?.content ?? p?.title ?? "",
       authorId: p?.author?.id ?? p?.userId,
     })).filter((p) => p.id);
   } catch (err) {
+    debugError = err as Error;
     console.error("[ForumViewer] listForumPostsFromForum error", { bindingForumId: binding.forumId, error: err });
   }
 

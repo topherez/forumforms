@@ -25,17 +25,21 @@ export default async function ForumsBindingPage({
       // The SDK returns company.experiencesV2.nodes
       const companies = resp?.company ?? resp;
       const nodes: any[] = companies?.experiencesV2?.nodes ?? resp?.nodes ?? [];
+      console.log("[AutoBind] all experiences", nodes.map((e: any) => ({ id: e?.id, name: e?.name, appName: e?.app?.name, route: e?.route })));
       const forumExp = nodes.find((e: any) =>
         String(e?.app?.name ?? e?.name ?? "").toLowerCase().includes("forum") ||
         String(e?.route ?? e?.slug ?? "").toLowerCase().includes("forums-")
       );
       const expId: string | undefined = forumExp?.id ?? forumExp?.experienceId ?? forumExp?.experience?.experienceId;
+      console.log("[AutoBind] found forum exp", { forumExp, expId });
       if (expId?.startsWith("exp_")) {
         await prisma.forumBinding.upsert({
           where: { companyId_forumId: { companyId, forumId: expId } },
           update: { enabled: true },
           create: { companyId, forumId: expId, enabled: true },
         });
+      } else {
+        console.error("[AutoBind] no exp_ found", { nodesCount: nodes.length, foundForumExp: forumExp, expId });
       }
     } catch {}
   }
