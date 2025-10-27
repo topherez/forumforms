@@ -57,7 +57,7 @@ export default async function ForumViewerPage({
     <div className="max-w-3xl mx-auto p-6 space-y-4">
       <h1 className="text-xl font-semibold">Forum</h1>
       <div className="text-xs text-gray-500 mb-4">
-        Binding: {binding.forumId} | Company: {companyId}
+        Binding: {binding.forumId} | Company: {companyIdFromExp}
       </div>
 
       {posts.length === 0 ? (
