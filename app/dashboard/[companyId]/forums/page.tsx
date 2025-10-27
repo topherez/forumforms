@@ -19,16 +19,18 @@ export default async function ForumsBindingPage({
   const existing = await prisma.forumBinding.findFirst({ where: { companyId, enabled: true } });
   if (!existing) {
     try {
-      const resp: any = await whopSdk.companies.getCompany({ companyId });
-      // The SDK returns company.experiencesV2.nodes
-      const company = resp?.company ?? resp;
-      const nodes: any[] = company?.experiencesV2?.nodes ?? resp?.nodes ?? [];
-      console.log("[AutoBind] all experiences for company", { companyId, nodesCount: nodes.length, exp: nodes.map((e: any) => ({ id: e?.id, name: e?.name, appName: e?.app?.name, route: e?.route, companyId: e?.companyId })) });
+      // Use the withCompany scoping to get experiences for this specific company
+      const sdkAny: any = whopSdk as any;
+      const scoped = typeof sdkAny.withCompany === "function" ? sdkAny.withCompany(companyId) : sdkAny;
+      const resp: any = await scoped.experiences.listExperiences({ first: 50 });
+      const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
+      console.log("[AutoBind] all experiences for company", { companyId, nodesCount: nodes.length, exp: nodes.map((e: any) => ({ id: e?.id, name: e?.name, type: e?.type, appKey: e?.appKey })) });
       const forumExp = nodes.find((e: any) =>
-        String(e?.app?.name ?? e?.name ?? "").toLowerCase().includes("forum") ||
-        String(e?.route ?? e?.slug ?? "").toLowerCase().includes("forums-")
+        (e?.type && String(e.type).toLowerCase().includes("forum")) ||
+        (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
+        (e?.name && String(e.name).toLowerCase().includes("forum"))
       );
-      const expId: string | undefined = forumExp?.id ?? forumExp?.experienceId ?? forumExp?.experience?.experienceId;
+      const expId: string | undefined = forumExp?.id ?? forumExp?.experienceId;
       console.log("[AutoBind] found forum exp for company", { forumExp, expId });
       if (expId?.startsWith("exp_")) {
         await prisma.forumBinding.upsert({
