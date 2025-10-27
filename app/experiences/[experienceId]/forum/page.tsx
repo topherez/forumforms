@@ -21,15 +21,19 @@ export default async function ForumViewerPage({
   const binding = await prisma.forumBinding.findFirst({ where: { companyId, enabled: true } });
   if (!binding) return <div className="p-6">No forum bound for this company.</div>;
 
-  // Best-effort: list recent posts using the SDK’s forums feed if available
-  let posts: Array<{ id: string; content?: string | null }> = [];
+  // List posts from the bound forum experience
+  let posts: Array<{ id: string; content?: string | null; authorId?: string | null }> = [];
   try {
-    // Use the BOUND forum experience id (not this wrapper app's experience id)
-    const res: any = await (whopSdk as any).forums.listForumPostsFromForum({ experienceId: binding.forumId });
-    const items: any[] = Array.isArray(res?.nodes ?? res) ? (res.nodes ?? res) : [];
-    posts = items.map((p: any) => ({ id: p?.id ?? "", content: p?.content ?? p?.title ?? "" })).filter((p) => p.id);
-  } catch {
-    // If not available, render a helpful message
+    const res: any = await whopSdk.forums.listForumPostsFromForum({ experienceId: binding.forumId });
+    const feed = res?.feedPosts;
+    const items: any[] = feed?.nodes ?? [];
+    posts = items.map((p: any) => ({
+      id: p?.id ?? "",
+      content: p?.content ?? p?.title ?? "",
+      authorId: p?.author?.id ?? p?.userId,
+    })).filter((p) => p.id);
+  } catch (err) {
+    console.error("[ForumViewer] listForumPostsFromForum error", { bindingForumId: binding.forumId, error: err });
   }
 
   return (
