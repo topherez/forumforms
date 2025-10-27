@@ -19,12 +19,34 @@ export default async function ForumsBindingPage({
   const existing = await prisma.forumBinding.findFirst({ where: { companyId, enabled: true } });
   if (!existing) {
     try {
-      // Call listExperiences with companyId - get experiences for THIS company
-      const resp: any = await whopSdk.experiences.listExperiences({ companyId, first: 50 });
-      const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
-      console.log("[AutoBind] all experiences for company", { companyId, nodesCount: nodes.length, exp: nodes.map((e: any) => ({ id: e?.id, name: e?.name, type: e?.type, appKey: e?.appKey })) });
+      // Get company details first
+      const companyResp: any = await whopSdk.companies.getCompany({ companyId });
+      console.log("[AutoBind] company details", { companyId, companyResp });
       
-      const forumExp = nodes.find((e: any) =>
+      // Try to get experiences - the company object should have experiences
+      // Try multiple approaches
+      const experiencesFromCompany = companyResp?.company?.experiences ?? companyResp?.experiences ?? [];
+      const experiencesFromV2 = companyResp?.company?.experiencesV2?.nodes ?? [];
+      
+      console.log("[AutoBind] experiences from company object", { 
+        fromCompany: experiencesFromCompany.length,
+        fromV2: experiencesFromV2.length
+      });
+      
+      // Try getting all experiences and filter by companyId
+      const resp: any = await whopSdk.experiences.listExperiences({ first: 50 });
+      const allNodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
+      console.log("[AutoBind] all experiences", { totalCount: allNodes.length });
+      
+      // Filter to experiences for this specific company
+      const companyNodes = allNodes.filter((e: any) => {
+        const expCompanyId = e?.companyId ?? e?.company?.id ?? e?.company_id;
+        return String(expCompanyId ?? "").toLowerCase() === companyId.toLowerCase();
+      });
+      
+      console.log("[AutoBind] filtered for company", { companyId, nodesCount: companyNodes.length, exp: companyNodes.map((e: any) => ({ id: e?.id, name: e?.name, type: e?.type, appKey: e?.appKey, companyId: e?.companyId ?? e?.company?.id })) });
+      
+      const forumExp = companyNodes.find((e: any) =>
         (e?.type && String(e.type).toLowerCase().includes("forum")) ||
         (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
         (e?.name && String(e.name).toLowerCase().includes("forum"))
@@ -38,7 +60,7 @@ export default async function ForumsBindingPage({
           create: { companyId, forumId: expId, enabled: true },
         });
       } else {
-        console.error("[AutoBind] no exp_ found for company", { companyId, nodesCount: nodes.length, foundForumExp: forumExp, expId });
+        console.error("[AutoBind] no exp_ found for company", { companyId, nodesCount: companyNodes.length, foundForumExp: forumExp, expId });
       }
     } catch (e) {
       console.error("[AutoBind] error", { companyId, error: e });
@@ -78,10 +100,17 @@ function AutoBindButton({ companyId }: { companyId: string }) {
   async function onAuto() {
     "use server";
     try {
-      const resp: any = await whopSdk.experiences.listExperiences({ companyId, first: 50 });
-      const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
+      // Get all experiences and filter by companyId client-side
+      const resp: any = await whopSdk.experiences.listExperiences({ first: 50 });
+      const allNodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
       
-      const forumExp = nodes.find((e: any) =>
+      // Filter to experiences for this specific company
+      const companyNodes = allNodes.filter((e: any) => {
+        const expCompanyId = e?.companyId ?? e?.company?.id ?? e?.company_id;
+        return String(expCompanyId ?? "").toLowerCase() === companyId.toLowerCase();
+      });
+      
+      const forumExp = companyNodes.find((e: any) =>
         (e?.type && String(e.type).toLowerCase().includes("forum")) ||
         (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
         (e?.name && String(e.name).toLowerCase().includes("forum"))
