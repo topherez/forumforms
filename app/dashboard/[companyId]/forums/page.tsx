@@ -15,23 +15,21 @@ export default async function ForumsBindingPage({
     return <div className="p-6">Admins only.</div>;
   }
 
-  // If no binding exists, try to auto-detect a forum experience and bind it once for convenience
+  // If no binding exists, try to auto-detect a forum experience for THIS company and bind it once for convenience
   const existing = await prisma.forumBinding.findFirst({ where: { companyId, enabled: true } });
   if (!existing) {
     try {
-      const sdkAny: any = whopSdk as any;
-      const scoped = typeof sdkAny.withCompany === "function" ? sdkAny.withCompany(companyId) : sdkAny;
-      const resp: any = await scoped.experiences.listExperiences({ first: 50, companyId });
+      const resp: any = await (whopSdk as any).companies.getCompany({ companyId });
       // The SDK returns company.experiencesV2.nodes
       const companies = resp?.company ?? resp;
       const nodes: any[] = companies?.experiencesV2?.nodes ?? resp?.nodes ?? [];
-      console.log("[AutoBind] all experiences", nodes.map((e: any) => ({ id: e?.id, name: e?.name, appName: e?.app?.name, route: e?.route })));
+      console.log("[AutoBind] all experiences for company", { companyId, nodesCount: nodes.length, exp: nodes.map((e: any) => ({ id: e?.id, name: e?.name, appName: e?.app?.name, route: e?.route })) });
       const forumExp = nodes.find((e: any) =>
         String(e?.app?.name ?? e?.name ?? "").toLowerCase().includes("forum") ||
         String(e?.route ?? e?.slug ?? "").toLowerCase().includes("forums-")
       );
       const expId: string | undefined = forumExp?.id ?? forumExp?.experienceId ?? forumExp?.experience?.experienceId;
-      console.log("[AutoBind] found forum exp", { forumExp, expId });
+      console.log("[AutoBind] found forum exp for company", { forumExp, expId });
       if (expId?.startsWith("exp_")) {
         await prisma.forumBinding.upsert({
           where: { companyId_forumId: { companyId, forumId: expId } },
@@ -39,9 +37,11 @@ export default async function ForumsBindingPage({
           create: { companyId, forumId: expId, enabled: true },
         });
       } else {
-        console.error("[AutoBind] no exp_ found", { nodesCount: nodes.length, foundForumExp: forumExp, expId });
+        console.error("[AutoBind] no exp_ found for company", { companyId, nodesCount: nodes.length, foundForumExp: forumExp, expId });
       }
-    } catch {}
+    } catch (e) {
+      console.error("[AutoBind] error", { companyId, error: e });
+    }
   }
 
   return (
