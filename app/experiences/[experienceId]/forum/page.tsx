@@ -57,7 +57,7 @@ export default async function ForumViewerPage({
           <details className="mt-4 text-xs">
             <summary>Debug: Raw API response</summary>
             <pre className="mt-2 p-3 bg-gray-900 rounded overflow-auto">
-              {JSON.stringify({ bindingForumId: binding.forumId, postsCount: posts.length, rawPosts: posts }, null, 2)}
+              {JSON.stringify({ bindingForumId: binding.forumId, postsCount: posts.length, rawPosts: posts, rawResponse, debugError }, null, 2)}
             </pre>
           </details>
         </>
