@@ -22,7 +22,7 @@ export default async function ForumViewerPage({
   if (!binding) return <div className="p-6">No forum bound for this company.</div>;
 
   // List posts from the bound forum experience
-  let posts: Array<{ id: string; content?: string | null; authorId?: string | null }> = [];
+  let posts: Array<{ id: string; content?: string | null; authorId?: string | null; authorName?: string | null }> = [];
   let rawResponse: any = null;
   let debugError: Error | null = null;
   try {
@@ -32,12 +32,14 @@ export default async function ForumViewerPage({
     console.log("[ForumViewer] raw response", { res, keys: Object.keys(res || {}) });
     const feed = res?.feedPosts;
     console.log("[ForumViewer] feed", { feed, keys: Object.keys(feed || {}) });
-    const items: any[] = feed?.nodes ?? [];
+    // Try different response shapes
+    const items: any[] = feed?.nodes ?? res?.posts ?? feed?.posts ?? [];
     console.log("[ForumViewer] items", { itemsCount: items.length, items });
     posts = items.map((p: any) => ({
       id: p?.id ?? "",
       content: p?.content ?? p?.title ?? "",
-      authorId: p?.author?.id ?? p?.userId,
+      authorId: p?.user?.id ?? p?.author?.id ?? p?.userId,
+      authorName: p?.user?.name ?? p?.author?.name,
     })).filter((p) => p.id);
   } catch (err) {
     debugError = err as Error;
@@ -65,8 +67,8 @@ export default async function ForumViewerPage({
         <ul className="space-y-3">
           {posts.map((p) => (
             <li key={p.id} className="border rounded p-3">
-              <div className="text-sm font-medium">{p.id}</div>
-              <div className="text-sm text-gray-600 truncate">{p.content}</div>
+              <div className="text-xs text-gray-500 mb-1">By {p.authorName ?? "Unknown"}</div>
+              <div className="text-sm text-gray-700">{p.content}</div>
             </li>
           ))}
         </ul>
