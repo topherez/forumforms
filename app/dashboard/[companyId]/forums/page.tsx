@@ -19,17 +19,12 @@ export default async function ForumsBindingPage({
   const existing = await prisma.forumBinding.findFirst({ where: { companyId, enabled: true } });
   if (!existing) {
     try {
-      // Call listExperiences directly - it will return experiences for the company
-      const resp: any = await whopSdk.experiences.listExperiences({ first: 50 });
+      // Call listExperiences with companyId - get experiences for THIS company
+      const resp: any = await whopSdk.experiences.listExperiences({ companyId, first: 50 });
       const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
-      console.log("[AutoBind] all experiences for company", { companyId, nodesCount: nodes.length, exp: nodes.map((e: any) => ({ id: e?.id, name: e?.name, type: e?.type, appKey: e?.appKey, companyId: e?.companyId })) });
+      console.log("[AutoBind] all experiences for company", { companyId, nodesCount: nodes.length, exp: nodes.map((e: any) => ({ id: e?.id, name: e?.name, type: e?.type, appKey: e?.appKey })) });
       
-      // Filter experiences to only those for this company
-      const companyExp = nodes.filter((e: any) => 
-        String(e?.companyId ?? "").toLowerCase() === companyId.toLowerCase()
-      );
-      
-      const forumExp = companyExp.find((e: any) =>
+      const forumExp = nodes.find((e: any) =>
         (e?.type && String(e.type).toLowerCase().includes("forum")) ||
         (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
         (e?.name && String(e.name).toLowerCase().includes("forum"))
@@ -83,15 +78,10 @@ function AutoBindButton({ companyId }: { companyId: string }) {
   async function onAuto() {
     "use server";
     try {
-      const resp: any = await whopSdk.experiences.listExperiences({ first: 50 });
+      const resp: any = await whopSdk.experiences.listExperiences({ companyId, first: 50 });
       const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
       
-      // Filter experiences to only those for this company
-      const companyExp = nodes.filter((e: any) => 
-        String(e?.companyId ?? "").toLowerCase() === companyId.toLowerCase()
-      );
-      
-      const forumExp = companyExp.find((e: any) =>
+      const forumExp = nodes.find((e: any) =>
         (e?.type && String(e.type).toLowerCase().includes("forum")) ||
         (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
         (e?.name && String(e.name).toLowerCase().includes("forum"))
@@ -133,7 +123,7 @@ function BindForm({ companyId }: { companyId: string }) {
     let resolvedForumId = forumId;
     if (forumId.startsWith("forums-")) {
       try {
-        const resp: any = await (whopSdk as any).experiences.listExperiences({ first: 50 });
+        const resp: any = await whopSdk.experiences.listExperiences({ companyId, first: 50 });
         const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
         const hit = nodes.find((e: any) =>
           String(e?.slug ?? "").toLowerCase() === forumId.toLowerCase() ||

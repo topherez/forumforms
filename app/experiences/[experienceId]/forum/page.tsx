@@ -29,7 +29,14 @@ export default async function ForumViewerPage({
   }
 
   // List posts from the bound forum experience
-  let posts: Array<{ id: string; content?: string | null; authorId?: string | null; authorName?: string | null }> = [];
+  let posts: Array<{ 
+    id: string; 
+    content?: string | null; 
+    authorId?: string | null; 
+    authorName?: string | null;
+    metadata?: any;
+    authorUser?: any;
+  }> = [];
   let rawResponse: any = null;
   let debugError: Error | null = null;
   try {
@@ -42,11 +49,33 @@ export default async function ForumViewerPage({
     // Try different response shapes
     const items: any[] = feed?.nodes ?? res?.posts ?? feed?.posts ?? [];
     console.log("[ForumViewer] items", { itemsCount: items.length, items });
+    
+    // Get all post IDs and fetch metadata and user data
+    const postIds = items.map((p: any) => p?.id ?? "").filter(Boolean);
+    const metadataRecords = await prisma.postMetadata.findMany({
+      where: { postId: { in: postIds }, companyId: companyIdFromExp },
+    });
+    const metadataMap = new Map(metadataRecords.map(m => [m.postId, m.dataJson]));
+    
+    // Fetch user details for unique author IDs
+    const uniqueAuthorIds = [...new Set(items.map((p: any) => p?.user?.id ?? p?.author?.id ?? p?.userId).filter(Boolean))];
+    const userMap = new Map();
+    for (const authorId of uniqueAuthorIds) {
+      try {
+        const authorUser = await whopSdk.users.getUser({ userId: authorId });
+        userMap.set(authorId, authorUser);
+      } catch (err) {
+        console.error("[ForumViewer] failed to fetch user", { authorId, error: err });
+      }
+    }
+    
     posts = items.map((p: any) => ({
       id: p?.id ?? "",
       content: p?.content ?? p?.title ?? "",
       authorId: p?.user?.id ?? p?.author?.id ?? p?.userId,
       authorName: p?.user?.name ?? p?.author?.name,
+      metadata: metadataMap.get(p?.id) ?? null,
+      authorUser: userMap.get(p?.user?.id ?? p?.author?.id ?? p?.userId) ?? null,
     })).filter((p) => p.id);
   } catch (err) {
     debugError = err as Error;
@@ -74,8 +103,30 @@ export default async function ForumViewerPage({
         <ul className="space-y-3">
           {posts.map((p) => (
             <li key={p.id} className="border rounded p-3">
-              <div className="text-xs text-gray-500 mb-1">By {p.authorName ?? "Unknown"}</div>
-              <div className="text-sm text-gray-700">{p.content}</div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-xs text-gray-500">
+                  By {p.authorName ?? "Unknown"} {p.authorUser && `(@${p.authorUser.username})`}
+                </div>
+                {p.authorUser && (
+                  <div className="text-xs text-gray-400">
+                    {p.authorUser.email ? `📧 ${p.authorUser.email}` : ''}
+                  </div>
+                )}
+              </div>
+              <div className="text-sm text-gray-700 mb-2">{p.content}</div>
+              {p.metadata && typeof p.metadata === 'object' && Object.keys(p.metadata).length > 0 && (
+                <div className="mt-3 pt-3 border-t text-xs">
+                  <div className="font-semibold text-gray-600 mb-1">Custom Fields:</div>
+                  <div className="space-y-1">
+                    {Object.entries(p.metadata).map(([key, value]) => (
+                      <div key={key} className="flex gap-2">
+                        <span className="text-gray-500">{key}:</span>
+                        <span className="text-gray-700">{String(value)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </li>
           ))}
         </ul>
