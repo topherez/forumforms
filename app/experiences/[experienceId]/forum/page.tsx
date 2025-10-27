@@ -39,8 +39,20 @@ export default async function ForumViewerPage({
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-4">
       <h1 className="text-xl font-semibold">Forum</h1>
+      <div className="text-xs text-gray-500 mb-4">
+        Binding: {binding.forumId} | Company: {companyId}
+      </div>
+
       {posts.length === 0 ? (
-        <div className="text-sm text-gray-500">No posts to show yet.</div>
+        <>
+          <div className="text-sm text-gray-500">No posts to show yet.</div>
+          <details className="mt-4 text-xs">
+            <summary>Debug: Raw API response</summary>
+            <pre className="mt-2 p-3 bg-gray-900 rounded overflow-auto">
+              {JSON.stringify({ bindingForumId: binding.forumId, postsCount: posts.length, rawPosts: posts }, null, 2)}
+            </pre>
+          </details>
+        </>
       ) : (
         <ul className="space-y-3">
           {posts.map((p) => (
