@@ -48,23 +48,14 @@ const companyIdFromExperience =
 				You are viewing the experience: <strong>{experience.name}</strong>
 			</h1>
 
-			{result.hasAccess && (
-				<Link
-					href={`/experiences/${experienceId}/compose`}
-					className="px-4 py-2 rounded bg-blue-600 text-white"
-				>
-					Compose a Post with Custom Fields
-				</Link>
-			)}
-
-			{result.hasAccess && (
-				<Link
-					href={`/experiences/${experienceId}/forum`}
-					className="px-4 py-2 rounded border border-gray-300 text-white/90"
-				>
-					Open Forum Viewer
-				</Link>
-			)}
+		{result.hasAccess && (
+			<Link
+				href={`/experiences/${experienceId}/forum`}
+				className="px-4 py-2 rounded bg-blue-600 text-white"
+			>
+				Open Forum Reader
+			</Link>
+		)}
 
 			{accessLevel === "admin" && companyIdFromExperience && (
 				<div className="flex gap-3">
