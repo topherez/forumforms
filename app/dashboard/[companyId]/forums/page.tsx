@@ -33,8 +33,8 @@ export default async function ForumsBindingPage({
         fromV2: experiencesFromV2.length
       });
       
-      // Try getting all experiences and filter by companyId
-      const resp: any = await whopSdk.experiences.listExperiences({ first: 50 });
+      // Query experiences for this company
+      const resp: any = await whopSdk.experiences.listExperiences({ companyId, first: 50 });
       const allNodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
       console.log("[AutoBind] all experiences", { totalCount: allNodes.length });
       
@@ -100,8 +100,8 @@ function AutoBindButton({ companyId }: { companyId: string }) {
   async function onAuto() {
     "use server";
     try {
-      // Get all experiences and filter by companyId client-side
-      const resp: any = await whopSdk.experiences.listExperiences({ first: 50 });
+      // Query experiences for this company
+      const resp: any = await whopSdk.experiences.listExperiences({ companyId, first: 50 });
       const allNodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
       
       // Filter to experiences for this specific company
