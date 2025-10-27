@@ -46,11 +46,23 @@ export default async function ForumsBindingPage({
       
       console.log("[AutoBind] filtered for company", { companyId, nodesCount: companyNodes.length, exp: companyNodes.map((e: any) => ({ id: e?.id, name: e?.name, type: e?.type, appKey: e?.appKey, companyId: e?.companyId ?? e?.company?.id })) });
       
-      const forumExp = companyNodes.find((e: any) =>
+      let forumExp = companyNodes.find((e: any) =>
         (e?.type && String(e.type).toLowerCase().includes("forum")) ||
         (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
         (e?.name && String(e.name).toLowerCase().includes("forum"))
       );
+      // If none found, try to create one for convenience
+      if (!forumExp) {
+        try {
+          const created: any = await (whopSdk as any).forums.findOrCreateForum({ name: "Community Forum" });
+          if (created?.id?.startsWith("exp_")) {
+            forumExp = created;
+          }
+          console.log("[AutoBind] findOrCreateForum", { created });
+        } catch (err) {
+          console.error("[AutoBind] findOrCreateForum error", { error: err });
+        }
+      }
       const expId: string | undefined = forumExp?.id ?? forumExp?.experienceId;
       console.log("[AutoBind] found forum exp for company", { forumExp, expId });
       if (expId?.startsWith("exp_")) {
