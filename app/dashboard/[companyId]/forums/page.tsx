@@ -19,13 +19,17 @@ export default async function ForumsBindingPage({
   const existing = await prisma.forumBinding.findFirst({ where: { companyId, enabled: true } });
   if (!existing) {
     try {
-      // Use the withCompany scoping to get experiences for this specific company
-      const sdkAny: any = whopSdk as any;
-      const scoped = typeof sdkAny.withCompany === "function" ? sdkAny.withCompany(companyId) : sdkAny;
-      const resp: any = await scoped.experiences.listExperiences({ first: 50 });
+      // Call listExperiences directly - it will return experiences for the company
+      const resp: any = await whopSdk.experiences.listExperiences({ first: 50 });
       const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
-      console.log("[AutoBind] all experiences for company", { companyId, nodesCount: nodes.length, exp: nodes.map((e: any) => ({ id: e?.id, name: e?.name, type: e?.type, appKey: e?.appKey })) });
-      const forumExp = nodes.find((e: any) =>
+      console.log("[AutoBind] all experiences for company", { companyId, nodesCount: nodes.length, exp: nodes.map((e: any) => ({ id: e?.id, name: e?.name, type: e?.type, appKey: e?.appKey, companyId: e?.companyId })) });
+      
+      // Filter experiences to only those for this company
+      const companyExp = nodes.filter((e: any) => 
+        String(e?.companyId ?? "").toLowerCase() === companyId.toLowerCase()
+      );
+      
+      const forumExp = companyExp.find((e: any) =>
         (e?.type && String(e.type).toLowerCase().includes("forum")) ||
         (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
         (e?.name && String(e.name).toLowerCase().includes("forum"))
@@ -78,12 +82,16 @@ async function BindingsList({ companyId }: { companyId: string }) {
 function AutoBindButton({ companyId }: { companyId: string }) {
   async function onAuto() {
     "use server";
-    const sdkAny: any = whopSdk as any;
-    const scoped = typeof sdkAny.withCompany === "function" ? sdkAny.withCompany(companyId) : sdkAny;
     try {
-      const resp: any = await scoped.experiences.listExperiences({ first: 50 });
+      const resp: any = await whopSdk.experiences.listExperiences({ first: 50 });
       const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
-      const forumExp = nodes.find((e: any) =>
+      
+      // Filter experiences to only those for this company
+      const companyExp = nodes.filter((e: any) => 
+        String(e?.companyId ?? "").toLowerCase() === companyId.toLowerCase()
+      );
+      
+      const forumExp = companyExp.find((e: any) =>
         (e?.type && String(e.type).toLowerCase().includes("forum")) ||
         (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
         (e?.name && String(e.name).toLowerCase().includes("forum"))
