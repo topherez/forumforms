@@ -19,11 +19,11 @@ export default async function ForumsBindingPage({
   const existing = await prisma.forumBinding.findFirst({ where: { companyId, enabled: true } });
   if (!existing) {
     try {
-      const resp: any = await (whopSdk as any).companies.getCompany({ companyId });
+      const resp: any = await whopSdk.companies.getCompany({ companyId });
       // The SDK returns company.experiencesV2.nodes
-      const companies = resp?.company ?? resp;
-      const nodes: any[] = companies?.experiencesV2?.nodes ?? resp?.nodes ?? [];
-      console.log("[AutoBind] all experiences for company", { companyId, nodesCount: nodes.length, exp: nodes.map((e: any) => ({ id: e?.id, name: e?.name, appName: e?.app?.name, route: e?.route })) });
+      const company = resp?.company ?? resp;
+      const nodes: any[] = company?.experiencesV2?.nodes ?? resp?.nodes ?? [];
+      console.log("[AutoBind] all experiences for company", { companyId, nodesCount: nodes.length, exp: nodes.map((e: any) => ({ id: e?.id, name: e?.name, appName: e?.app?.name, route: e?.route, companyId: e?.companyId })) });
       const forumExp = nodes.find((e: any) =>
         String(e?.app?.name ?? e?.name ?? "").toLowerCase().includes("forum") ||
         String(e?.route ?? e?.slug ?? "").toLowerCase().includes("forums-")

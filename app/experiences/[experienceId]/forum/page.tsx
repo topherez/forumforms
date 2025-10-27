@@ -16,10 +16,17 @@ export default async function ForumViewerPage({
 
   // Resolve company and forum binding
   const exp = await whopSdk.experiences.getExperience({ experienceId });
-  const companyId = (exp as any)?.companyId ?? (exp as any)?.company_id ?? process.env.NEXT_PUBLIC_WHOP_COMPANY_ID;
-  if (!companyId) return <div className="p-6">Missing company</div>;
-  const binding = await prisma.forumBinding.findFirst({ where: { companyId, enabled: true } });
-  if (!binding) return <div className="p-6">No forum bound for this company.</div>;
+  const companyIdFromExp = (exp as any)?.companyId ?? (exp as any)?.company_id ?? process.env.NEXT_PUBLIC_WHOP_COMPANY_ID;
+  // Try to find ANY enabled binding for this company; fall back to companyId from exp
+  const binding = await prisma.forumBinding.findFirst({ where: { companyId: companyIdFromExp, enabled: true } });
+  if (!binding) {
+    return (
+      <div className="p-6">
+        <div>No forum bound for this company.</div>
+        <div className="text-xs mt-2">Company from experience: {companyIdFromExp}</div>
+      </div>
+    );
+  }
 
   // List posts from the bound forum experience
   let posts: Array<{ id: string; content?: string | null; authorId?: string | null; authorName?: string | null }> = [];
