@@ -127,6 +127,10 @@ export default async function ForumViewerPage({
       <h1 className="text-xl font-semibold">Forum</h1>
       <div className="text-xs text-gray-500 mb-4">
         Binding: {binding.forumId} | Company: {companyIdFromExp}
+        <span className="mx-2">•</span>
+        <Link href={`/dashboard/${companyIdFromExp}/forums`} className="underline">
+          Manage bindings
+        </Link>
       </div>
 
       {posts.length === 0 ? (
