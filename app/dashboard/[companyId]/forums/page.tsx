@@ -33,8 +33,10 @@ export default async function ForumsBindingPage({
         fromV2: experiencesFromV2.length
       });
       
-      // Query experiences for this company
-      const resp: any = await whopSdk.experiences.listExperiences({ companyId, first: 50 });
+      // Query experiences for this company as the signed-in user
+      const sdkAny: any = whopSdk as any;
+      const sdkWithUser = typeof sdkAny.withUser === "function" ? sdkAny.withUser(userId) : sdkAny;
+      const resp: any = await sdkWithUser.experiences.listExperiences({ companyId, first: 50 });
       const allNodes: any[] = resp?.company?.experiencesV2?.nodes ?? resp?.nodes ?? resp?.experiences ?? [];
       console.log("[AutoBind] all experiences", { totalCount: allNodes.length });
       
@@ -112,8 +114,10 @@ function AutoBindButton({ companyId }: { companyId: string }) {
   async function onAuto() {
     "use server";
     try {
-      // Query experiences for this company
-      const resp: any = await whopSdk.experiences.listExperiences({ companyId, first: 50 });
+      // Query experiences for this company as the signed-in user
+      const sdkAny: any = whopSdk as any;
+      const sdkWithUser = typeof sdkAny.withUser === "function" ? sdkAny.withUser(userId) : sdkAny;
+      const resp: any = await sdkWithUser.experiences.listExperiences({ companyId, first: 50 });
       const allNodes: any[] = resp?.company?.experiencesV2?.nodes ?? resp?.nodes ?? resp?.experiences ?? [];
       
       // Filter to experiences for this specific company
