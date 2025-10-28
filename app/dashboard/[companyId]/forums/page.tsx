@@ -9,8 +9,33 @@ export default async function ForumsBindingPage({
 }) {
   const headersList = await headers();
   const { companyId } = await params;
-  const { userId } = await whopSdk.verifyUserToken(headersList);
-  const access = await whopSdk.access.checkIfUserHasAccessToCompany({ userId, companyId });
+  let userId: string | null = null;
+  try {
+    const verified = await whopSdk.verifyUserToken(headersList);
+    userId = verified.userId;
+  } catch {
+    return (
+      <div className="p-6 space-y-3">
+        <h1 className="text-xl font-semibold">Forum Bindings</h1>
+        <p className="text-sm text-gray-500">
+          This page must be opened from within Whop so we can verify your user session.
+        </p>
+        <p className="text-sm">
+          Please open the app from your company dashboard in Whop (Apps → ForumForms → Open app),
+          or visit the install link for your app.
+        </p>
+        <a
+          className="inline-block mt-2 px-3 py-2 border rounded"
+          href={`https://whop.com/apps/${process.env.NEXT_PUBLIC_WHOP_APP_ID ? `app_${process.env.NEXT_PUBLIC_WHOP_APP_ID}` : ""}`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open in Whop
+        </a>
+      </div>
+    );
+  }
+  const access = await whopSdk.access.checkIfUserHasAccessToCompany({ userId: userId!, companyId });
   if (!access.hasAccess || access.accessLevel !== "admin") {
     return <div className="p-6">Admins only.</div>;
   }
@@ -170,8 +195,13 @@ function BindForm({ companyId }: { companyId: string }) {
     let resolvedForumId = forumId;
     if (forumId.startsWith("forums-")) {
       try {
-        const resp: any = await whopSdk.experiences.listExperiences({ companyId, first: 50 });
-        const nodes: any[] = resp?.nodes ?? resp?.experiences ?? [];
+        // scope as current admin user to access company experiences
+        const headersList = await headers();
+        const { userId } = await whopSdk.verifyUserToken(headersList);
+        const sdkAny: any = whopSdk as any;
+        const sdkWithUser = typeof sdkAny.withUser === "function" ? sdkAny.withUser(userId) : sdkAny;
+        const resp: any = await sdkWithUser.experiences.listExperiences({ companyId, first: 50 });
+        const nodes: any[] = resp?.company?.experiencesV2?.nodes ?? resp?.nodes ?? resp?.experiences ?? [];
         const hit = nodes.find((e: any) =>
           String(e?.slug ?? "").toLowerCase() === forumId.toLowerCase() ||
           String(e?.name ?? "").toLowerCase() === forumId.toLowerCase()

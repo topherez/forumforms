@@ -16,7 +16,7 @@ export default async function ForumViewerPage({
 
   // Resolve company and forum binding
   const exp = await whopSdk.experiences.getExperience({ experienceId });
-  const companyIdFromExp = (exp as any)?.companyId ?? (exp as any)?.company_id ?? process.env.NEXT_PUBLIC_WHOP_COMPANY_ID;
+  const companyIdFromExp = (exp as any)?.company?.id ?? (exp as any)?.companyId ?? (exp as any)?.company_id ?? process.env.NEXT_PUBLIC_WHOP_COMPANY_ID;
   // Try to find ANY enabled binding for this company; fall back to companyId from exp
   const binding = await prisma.forumBinding.findFirst({ where: { companyId: companyIdFromExp, enabled: true } });
   if (!binding) {
