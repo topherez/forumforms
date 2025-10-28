@@ -115,6 +115,8 @@ function AutoBindButton({ companyId }: { companyId: string }) {
     "use server";
     try {
       // Query experiences for this company as the signed-in user
+      const headersList = await headers();
+      const { userId } = await whopSdk.verifyUserToken(headersList);
       const sdkAny: any = whopSdk as any;
       const sdkWithUser = typeof sdkAny.withUser === "function" ? sdkAny.withUser(userId) : sdkAny;
       const resp: any = await sdkWithUser.experiences.listExperiences({ companyId, first: 50 });
