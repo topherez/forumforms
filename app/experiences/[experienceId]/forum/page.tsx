@@ -41,11 +41,20 @@ export default async function ForumViewerPage({
   let resolvedExperienceId = binding.forumId;
   if (resolvedExperienceId.startsWith("forums-")) {
     try {
+      // First attempt: some SDK resolvers accept route slugs directly
+      const maybeByRoute: any = await whopSdk.experiences.getExperience({ experienceId: resolvedExperienceId });
+      const byRouteId: string | undefined = (maybeByRoute as any)?.id ?? (maybeByRoute as any)?.experienceId;
+      if (byRouteId?.startsWith("exp_")) {
+        resolvedExperienceId = byRouteId;
+      }
+    } catch {}
+    if (resolvedExperienceId.startsWith("forums-")) {
+      try {
       const sdkAny: any = whopSdk as any;
       const sdkWithUser = typeof sdkAny.withUser === "function" ? sdkAny.withUser(userId) : sdkAny;
       const resp: any = await sdkWithUser.experiences.listExperiences({ companyId: companyIdFromExp, first: 50 });
       const nodes: any[] = resp?.company?.experiencesV2?.nodes ?? resp?.nodes ?? resp?.experiences ?? [];
-      const forumExp = nodes.find((e: any) =>
+        const forumExp = nodes.find((e: any) =>
         (e?.type && String(e.type).toLowerCase().includes("forum")) ||
         (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
         (e?.app?.name && String(e.app.name).toLowerCase().includes("forum")) ||
@@ -55,7 +64,8 @@ export default async function ForumViewerPage({
       if (expId?.startsWith("exp_")) {
         resolvedExperienceId = expId;
       }
-    } catch {}
+      } catch {}
+    }
   }
 
   // List posts from the bound forum experience
