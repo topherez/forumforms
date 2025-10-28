@@ -28,6 +28,27 @@ export default async function ForumViewerPage({
     );
   }
 
+  // Resolve bound forum to an exp_* id if a forums-* slug was saved
+  let resolvedExperienceId = binding.forumId;
+  if (resolvedExperienceId.startsWith("forums-")) {
+    try {
+      const sdkAny: any = whopSdk as any;
+      const sdkWithUser = typeof sdkAny.withUser === "function" ? sdkAny.withUser(userId) : sdkAny;
+      const resp: any = await sdkWithUser.experiences.listExperiences({ companyId: companyIdFromExp, first: 50 });
+      const nodes: any[] = resp?.company?.experiencesV2?.nodes ?? resp?.nodes ?? resp?.experiences ?? [];
+      const forumExp = nodes.find((e: any) =>
+        (e?.type && String(e.type).toLowerCase().includes("forum")) ||
+        (e?.appKey && String(e.appKey).toLowerCase().includes("forum")) ||
+        (e?.app?.name && String(e.app.name).toLowerCase().includes("forum")) ||
+        (e?.name && String(e.name).toLowerCase().includes("forum"))
+      );
+      const expId: string | undefined = forumExp?.id ?? forumExp?.experienceId;
+      if (expId?.startsWith("exp_")) {
+        resolvedExperienceId = expId;
+      }
+    } catch {}
+  }
+
   // List posts from the bound forum experience
   let posts: Array<{ 
     id: string; 
@@ -40,8 +61,8 @@ export default async function ForumViewerPage({
   let rawResponse: any = null;
   let debugError: Error | null = null;
   try {
-    console.log("[ForumViewer] calling listForumPostsFromForum", { bindingForumId: binding.forumId });
-    const res: any = await whopSdk.forums.listForumPostsFromForum({ experienceId: binding.forumId });
+    console.log("[ForumViewer] calling listForumPostsFromForum", { bindingForumId: binding.forumId, resolvedExperienceId });
+    const res: any = await whopSdk.forums.listForumPostsFromForum({ experienceId: resolvedExperienceId });
     rawResponse = res;
     console.log("[ForumViewer] raw response", { res, keys: Object.keys(res || {}) });
     const feed = res?.feedPosts;
