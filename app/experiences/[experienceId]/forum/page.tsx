@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { whopSdk } from "@/lib/whop-sdk";
 import { prisma } from "@/lib/prisma";
 
@@ -24,6 +25,14 @@ export default async function ForumViewerPage({
       <div className="p-6">
         <div>No forum bound for this company.</div>
         <div className="text-xs mt-2">Company from experience: {companyIdFromExp}</div>
+        <div className="mt-3">
+          <Link
+            href={`/dashboard/${companyIdFromExp}/forums`}
+            className="inline-block px-3 py-2 border rounded"
+          >
+            Manage Forum Bindings
+          </Link>
+        </div>
       </div>
     );
   }
