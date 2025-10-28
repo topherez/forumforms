@@ -209,6 +209,17 @@ function BindForm({ companyId }: { companyId: string }) {
         const expId: string | undefined = hit?.id ?? hit?.experienceId;
         if (expId?.startsWith("exp_")) resolvedForumId = expId;
       } catch {}
+
+      // As a last resort, ask Whop to find or create the forum and use its id (idempotent if one exists)
+      if (resolvedForumId.startsWith("forums-")) {
+        try {
+          const created: any = await (whopSdk as any).forums.findOrCreateForum({ name: "Community Forum" });
+          const expId: string | undefined = created?.id ?? created?.experienceId;
+          if (expId?.startsWith("exp_")) {
+            resolvedForumId = expId;
+          }
+        } catch {}
+      }
     }
     const headersList = await headers();
     const { userId } = await whopSdk.verifyUserToken(headersList);
