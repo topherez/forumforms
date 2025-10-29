@@ -3,11 +3,15 @@ import { whopSdk } from "@/lib/whop-sdk";
 
 export default async function ForumViewerPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ experienceId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const headersList = await headers();
   const { experienceId } = await params;
+  const sp = await searchParams;
+  const rawOverride = (typeof sp.forumExpId === "string" ? sp.forumExpId : undefined) || (typeof sp.forum === "string" ? sp.forum : undefined) || (typeof sp.slug === "string" ? sp.slug : undefined);
   const { userId } = await whopSdk.verifyUserToken(headersList);
 
   // Access check
@@ -20,7 +24,7 @@ export default async function ForumViewerPage({
   if (!companyId) return <div className="p-6">Could not determine company.</div>;
 
   // SDK (GraphQL): list experiences for this company via withUser + withCompany
-  let forumExpId: string | null = null;
+  let forumExpId: string | null = rawOverride?.startsWith("exp_") ? rawOverride : null;
   let expsStatus: number | null = null;
   let expsBody: any = null;
   let expsError: string | null = null;
@@ -36,7 +40,7 @@ export default async function ForumViewerPage({
       String(e?.app?.name ?? e?.name ?? "").toLowerCase().includes("forum") ||
       String(e?.route ?? e?.slug ?? "").toLowerCase().startsWith("forums-")
     );
-    forumExpId = forumExp?.id ?? forumExp?.experienceId ?? null;
+    forumExpId = forumExpId ?? (forumExp?.id ?? forumExp?.experienceId ?? null);
   } catch (e: any) {
     expsStatus = 500;
     expsError = String(e?.message ?? e);
