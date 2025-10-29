@@ -25,7 +25,7 @@ export default async function ForumViewerPage({
   let expsBody: any = null;
   let expsError: string | null = null;
   try {
-    const res = await fetch(`https://api.whop.com/api/v5/experiences?company_id=${encodeURIComponent(companyId)}&first=50`, {
+    const res = await fetch(`https://api.whop.com/v5/experiences?company_id=${encodeURIComponent(companyId)}&first=50`, {
       headers: {
         Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
         Accept: "application/json",
