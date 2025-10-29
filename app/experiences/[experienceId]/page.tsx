@@ -1,4 +1,3 @@
-import { notFound } from "next/navigation";
 import { getWhopSdk } from "@/lib/whop-sdk";
 
 interface PageProps {
@@ -12,21 +11,12 @@ export default async function ExperienceForumPage({ params }: PageProps) {
   // Attempt to fetch posts via SDK. Adjust method names if SDK differs.
   // Expecting shape: { data, page_info } or similar
   // Pinned first; fall back gracefully if parameter unsupported
-  const listArgs: Record<string, unknown> = { experience_id: experienceId, first: 20 };
-  try {
-    // Prefer pinned first if supported
-    listArgs.pinned = true;
-  } catch {}
-
-  // SDK typing may vary by version; use any to avoid type conflicts here
-  const resp: any = await (sdk as any)?.forumPosts?.listForumPosts?.(listArgs);
+  const listArgs: Record<string, unknown> = { experience_id: experienceId, limit: 20 };
+  // SDK v0.0.2 uses `.forumPosts.list(query)`
+  const resp: any = await (sdk as any)?.forumPosts?.list?.(listArgs);
 
   const posts: any[] = resp?.data ?? resp?.items ?? [];
   const pageInfo = resp?.page_info ?? resp?.pageInfo ?? null;
-
-  if (!Array.isArray(posts) || posts.length === 0) {
-    notFound();
-  }
 
   return (
     <div className="p-4 space-y-4">
@@ -45,6 +35,9 @@ export default async function ExperienceForumPage({ params }: PageProps) {
             </div>
           </li>
         ))}
+        {posts.length === 0 && (
+          <li className="text-sm text-gray-500">No forum posts yet.</li>
+        )}
       </ul>
       {pageInfo?.has_next_page && (
         <div className="pt-4 text-center text-base text-gray-600">More posts available…</div>
