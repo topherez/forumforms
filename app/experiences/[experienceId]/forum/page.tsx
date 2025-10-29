@@ -19,40 +19,44 @@ export default async function ForumViewerPage({
   const companyId = (experience as any)?.company?.id as string | undefined;
   if (!companyId) return <div className="p-6">Could not determine company.</div>;
 
-  // REST: list forums for the company, pick the first forum's experience id
+  // REST: list experiences for the company to discover the Forum exp_ id
   let forumExpId: string | null = null;
-  let forumsStatus: number | null = null;
-  let forumsBody: any = null;
-  let forumsError: string | null = null;
+  let expsStatus: number | null = null;
+  let expsBody: any = null;
+  let expsError: string | null = null;
   try {
-    const res = await fetch(`https://api.whop.com/v5/forums?company_id=${encodeURIComponent(companyId)}&first=10`, {
+    const res = await fetch(`https://api.whop.com/api/v5/experiences?company_id=${encodeURIComponent(companyId)}&first=50`, {
       headers: {
         Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
         Accept: "application/json",
       },
       cache: "no-store",
     });
-    forumsStatus = res.status;
+    expsStatus = res.status;
     const text = await res.text();
-    try { forumsBody = JSON.parse(text); } catch { forumsBody = text; }
+    try { expsBody = JSON.parse(text); } catch { expsBody = text; }
     if (!res.ok) {
-      forumsError = typeof forumsBody === "string" ? forumsBody : (forumsBody?.message ?? JSON.stringify(forumsBody));
+      expsError = typeof expsBody === "string" ? expsBody : (expsBody?.message ?? JSON.stringify(expsBody));
     } else {
-      const first = (forumsBody as any)?.data?.[0];
-      forumExpId = first?.experience?.id ?? null;
+      const nodes: any[] = (expsBody as any)?.data ?? [];
+      const forumExp = nodes.find((e: any) =>
+        String(e?.app?.name ?? "").toLowerCase().includes("forum") ||
+        String(e?.route ?? e?.slug ?? "").toLowerCase().startsWith("forums-")
+      );
+      forumExpId = forumExp?.id ?? null;
     }
   } catch (e: any) {
-    forumsError = String(e?.message ?? e);
+    expsError = String(e?.message ?? e);
   }
 
   if (!forumExpId) {
     return (
       <div className="p-6 space-y-3">
         <h1 className="text-xl font-semibold">Forum</h1>
-        <div className="text-sm text-gray-500">No forums found for this company.</div>
+        <div className="text-sm text-gray-500">No forum experience found for this company.</div>
         <details className="text-xs">
           <summary>Debug</summary>
-          <pre className="mt-2 p-3 bg-gray-900 rounded overflow-auto">{JSON.stringify({ companyId, forumsStatus, forumsError, forumsBody }, null, 2)}</pre>
+          <pre className="mt-2 p-3 bg-gray-900 rounded overflow-auto">{JSON.stringify({ companyId, expsStatus, expsError, expsBody }, null, 2)}</pre>
         </details>
       </div>
     );
