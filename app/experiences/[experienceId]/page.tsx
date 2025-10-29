@@ -1,78 +1,56 @@
-import { whopSdk } from "@/lib/whop-sdk";
-import { headers } from "next/headers";
-import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getWhopSdk } from "@/lib/whop-sdk";
 
-export default async function ExperiencePage({
-	params,
-}: {
-	params: Promise<{ experienceId: string }>;
-}) {
-	// The headers contains the user token
-	const headersList = await headers();
-
-	// The experienceId is a path param
-	const { experienceId } = await params;
-
-	// The user token is in the headers
-	const { userId } = await whopSdk.verifyUserToken(headersList);
-
-	const result = await whopSdk.access.checkIfUserHasAccessToExperience({
-		userId,
-		experienceId,
-	});
-
-	const user = await whopSdk.users.getUser({ userId });
-const experience = await whopSdk.experiences.getExperience({ experienceId });
-const companyIdFromExperience =
-  (experience as any)?.companyId ??
-  (experience as any)?.company_id ??
-  process.env.NEXT_PUBLIC_WHOP_COMPANY_ID;
-
-	// Either: 'admin' | 'customer' | 'no_access';
-	// 'admin' means the user is an admin of the whop, such as an owner or moderator
-	// 'customer' means the user is a common member in this whop
-	// 'no_access' means the user does not have access to the whop
-	const { accessLevel } = result;
-
-	return (
-		<div className="flex flex-col gap-6 justify-center items-center h-screen px-8 text-center">
-			<h1 className="text-xl">
-				Hi <strong>{user.name}</strong>, you{" "}
-				<strong>{result.hasAccess ? "have" : "do not have"} access</strong> to
-				this experience. Your access level to this whop is:{" "}
-				<strong>{accessLevel}</strong>. <br />
-				<br />
-				Your user ID is <strong>{userId}</strong> and your username is{" "}
-				<strong>@{user.username}</strong>.<br />
-				<br />
-				You are viewing the experience: <strong>{experience.name}</strong>
-			</h1>
-
-		{result.hasAccess && (
-			<Link
-				href={`/experiences/${experienceId}/forum`}
-				className="px-4 py-2 rounded bg-blue-600 text-white"
-			>
-				Open Forum Reader
-			</Link>
-		)}
-
-			{accessLevel === "admin" && companyIdFromExperience && (
-				<div className="flex gap-3">
-					<Link
-						href={`/dashboard/${companyIdFromExperience}`}
-						className="px-4 py-2 rounded border border-gray-300 text-white/90"
-					>
-						Go to Schema Dashboard
-					</Link>
-					<Link
-						href={`/dashboard/${companyIdFromExperience}/forums`}
-						className="px-4 py-2 rounded border border-gray-300 text-white/90"
-					>
-						Manage Forum Bindings
-					</Link>
-				</div>
-			)}
-		</div>
-	);
+interface PageProps {
+  params: { experienceId: string };
 }
+
+export default async function ExperienceForumPage({ params }: PageProps) {
+  const sdk = getWhopSdk();
+  const experienceId = params.experienceId;
+
+  // Attempt to fetch posts via SDK. Adjust method names if SDK differs.
+  // Expecting shape: { data, page_info } or similar
+  // Pinned first; fall back gracefully if parameter unsupported
+  const listArgs: Record<string, unknown> = { experience_id: experienceId, first: 20 };
+  try {
+    // Prefer pinned first if supported
+    listArgs.pinned = true;
+  } catch {}
+
+  // @ts-expect-error - SDK typing may vary by version
+  const resp = await sdk?.forumPosts?.listForumPosts?.(listArgs);
+
+  const posts: any[] = resp?.data ?? resp?.items ?? [];
+  const pageInfo = resp?.page_info ?? resp?.pageInfo ?? null;
+
+  if (!Array.isArray(posts) || posts.length === 0) {
+    notFound();
+  }
+
+  return (
+    <div className="p-4 space-y-4">
+      <h1 className="text-7 font-bold">Forum Feed</h1>
+      <ul className="space-y-2">
+        {posts.map((post: any) => (
+          <li key={post.id} className="border p-3 rounded bg-white">
+            <h2 className="text-5 font-semibold">{post.title}</h2>
+            {post.content ? (
+              <p className="text-gray-6 mt-2 whitespace-pre-wrap">{post.content}</p>
+            ) : null}
+            <div className="text-2 text-gray-5 mt-3">
+              By {post.user?.name || post.user?.username || "Unknown"}
+              {typeof post.like_count === "number" ? ` • ${post.like_count} likes` : ""}
+              {typeof post.comment_count === "number" ? ` • ${post.comment_count} comments` : ""}
+            </div>
+          </li>
+        ))}
+      </ul>
+      {pageInfo?.has_next_page && (
+        <div className="pt-4 text-center text-3 text-gray-6">More posts available…</div>
+      )}
+    </div>
+  );
+}
+
+

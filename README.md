@@ -1,39 +1,53 @@
-This is a template for a whop app built in NextJS. Fork it and keep the parts you need for your app. 
+# Whop Forum Wrapper App
 
-# Whop NextJS App Template
+A minimal Whop app that displays forum posts for the host experience where it is installed. Built with Next.js App Router, Tailwind, and `@whop/react`.
 
-To run this project: 
+## Prerequisites
+- Whop developer account and an app created in your dashboard
+- Node 18+
+- pnpm (recommended) or npm/yarn
 
-1. Install dependencies with: `pnpm i`
+## Environment Variables
+Create a `.env.local` (or use the existing `.env` for local only) with:
 
-2. Create a Whop App on your [whop developer dashboard](https://whop.com/dashboard/developer/), then go to the "Hosting" section and:
-	- Ensure the "Base URL" is set to the domain you intend to deploy the site on.
-	- Ensure the "App path" is set to `/experiences/[experienceId]`
-	- Ensure the "Dashboard path" is set to `/dashboard/[companyId]` 
-	- Ensure the "Discover path" is set to `/discover` 
+```
+NEXT_PUBLIC_WHOP_APP_ID=app_XXXXXXXXXXXXXX
+WHOP_API_KEY=whop_XXXXXXXXXXXXXXXXXXXXXXXX
+```
 
-3. Copy the environment variables from the `.env.development` into a `.env.local`. Ensure to use real values from the whop dashboard.
+Optional (useful for local testing UI hints):
+```
+NEXT_PUBLIC_WHOP_AGENT_USER_ID=user_XXXXXXXXXXXX
+NEXT_PUBLIC_WHOP_COMPANY_ID=biz_XXXXXXXXXXXXXX
+```
 
-4. Go to a whop created in the same org as the app you created. Navigate to the tools section and add your app.
+## Install & Run
 
-5. Run `pnpm dev` to start the dev server. Then in the top right of the window find a translucent settings icon. Select "localhost". The default port 3000 should work.
+```bash
+pnpm install
+pnpm dev
+# open http://localhost:3000
+```
 
-## Deploying
+## Configure Hosting in Whop
+- In your app’s Hosting section, set App View to:
+  - `/experiences/[experienceId]`
+- Use your app’s Install URL to add it to a test Whop; enable Localhost mode when testing locally.
 
-1. Upload your fork / copy of this template to github. 
+## Where the forum is rendered
+- Experience page: `app/experiences/[experienceId]/page.tsx`
+  - Fetches forum posts for the current experience and renders a simple feed.
 
-2. Go to [Vercel](https://vercel.com/new) and link the repository. Deploy your application with the environment variables from your `.env.local`
+## SDK setup
+- Provider: `app/layout.tsx` wraps your app with `<WhopApp />` from `@whop/react`.
+- SDK client: `lib/whop-sdk.ts` initializes the `@whop/sdk` client using `WHOP_API_KEY`.
 
-3. If necessary update you "Base Domain" and webhook callback urls on the app settings page on the whop dashboard.
+If the SDK version you use exposes different factory/constructor names or methods, tweak `lib/whop-sdk.ts` and the list call in `app/experiences/[experienceId]/page.tsx` accordingly.
 
-## Troubleshooting
+## Deploy
+- Deploy to Vercel (or similar)
+- Update Hosting URL in Whop dashboard to your production domain
 
-**App not loading properly?** Make sure to set the "App path" in your Whop developer dashboard. The placeholder text in the UI does not mean it's set - you must explicitly enter `/experiences/[experienceId]` (or your chosen path name)
-a
-
-**Make sure to add env.local** Make sure to get the real app environment vairables from your whop dashboard and set them in .env.local
-
-
-For more info, see our docs at https://dev.whop.com/introduction
-
-.
+## Notes
+- The host must have Forums enabled on the experience being viewed
+- Your app must request/receive the `forum:read` permission on install to read forum posts
