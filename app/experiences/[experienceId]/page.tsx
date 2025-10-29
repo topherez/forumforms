@@ -1,16 +1,42 @@
+import { headers } from "next/headers";
 import { getWhopSdk } from "@/lib/whop-sdk";
 
 interface PageProps {
   params: { experienceId: string };
+  searchParams?: Record<string, string | string[] | undefined>;
 }
 
-export default async function ExperienceForumPage({ params }: PageProps) {
+export default async function ExperienceForumPage({ params, searchParams }: PageProps) {
   const sdk = getWhopSdk();
-  const experienceId = params.experienceId;
+  const normalize = (v?: string | null) => {
+    if (!v) return null;
+    if (v === "undefined") return null;
+    if (v.startsWith("[")) return null; // literal placeholder
+    if (v.includes("experienceId")) return null; // un-replaced token
+    return v;
+  };
+  const routeId = normalize(params.experienceId);
+  const h = await headers();
+  const headerId = normalize(h.get("x-whop-experience-id"));
+  const queryId = normalize(
+    typeof searchParams?.experienceId === "string"
+      ? (searchParams?.experienceId as string)
+      : Array.isArray(searchParams?.experienceId)
+      ? (searchParams?.experienceId?.[0] as string)
+      : undefined
+  );
+  const experienceId = routeId || headerId || queryId;
 
   // Attempt to fetch posts via SDK. Adjust method names if SDK differs.
   // Expecting shape: { data, page_info } or similar
   // Pinned first; fall back gracefully if parameter unsupported
+  if (!experienceId) {
+    return (
+      <div className="p-4 text-sm text-gray-600">
+        Missing experience ID. Ensure Hosting path is set to <code>/experiences/:experienceId</code>.
+      </div>
+    );
+  }
   const listArgs: Record<string, unknown> = { experience_id: experienceId, limit: 20 };
   // SDK v0.0.2 uses `.forumPosts.list(query)`
   const resp: any = await (sdk as any)?.forumPosts?.list?.(listArgs);
