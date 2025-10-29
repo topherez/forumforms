@@ -21,21 +21,39 @@ export default async function ForumViewerPage({
 
   // REST: list forums for the company, pick the first forum's experience id
   let forumExpId: string | null = null;
+  let forumsStatus: number | null = null;
+  let forumsBody: any = null;
+  let forumsError: string | null = null;
   try {
     const res = await fetch(`https://api.whop.com/forums?company_id=${encodeURIComponent(companyId)}&first=10`, {
-      headers: { Authorization: `Bearer ${process.env.WHOP_API_KEY}` },
+      headers: {
+        Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
+        Accept: "application/json",
+      },
       cache: "no-store",
     });
-    const json: any = await res.json();
-    const first = json?.data?.[0];
-    forumExpId = first?.experience?.id ?? null;
-  } catch {}
+    forumsStatus = res.status;
+    const text = await res.text();
+    try { forumsBody = JSON.parse(text); } catch { forumsBody = text; }
+    if (!res.ok) {
+      forumsError = typeof forumsBody === "string" ? forumsBody : (forumsBody?.message ?? JSON.stringify(forumsBody));
+    } else {
+      const first = (forumsBody as any)?.data?.[0];
+      forumExpId = first?.experience?.id ?? null;
+    }
+  } catch (e: any) {
+    forumsError = String(e?.message ?? e);
+  }
 
   if (!forumExpId) {
     return (
-      <div className="p-6">
+      <div className="p-6 space-y-3">
         <h1 className="text-xl font-semibold">Forum</h1>
         <div className="text-sm text-gray-500">No forums found for this company.</div>
+        <details className="text-xs">
+          <summary>Debug</summary>
+          <pre className="mt-2 p-3 bg-gray-900 rounded overflow-auto">{JSON.stringify({ companyId, forumsStatus, forumsError, forumsBody }, null, 2)}</pre>
+        </details>
       </div>
     );
   }
