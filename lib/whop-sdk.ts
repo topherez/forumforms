@@ -19,16 +19,20 @@ export function getWhopSdk() {
   if (!apiKey) {
     throw new Error("WHOP_API_KEY is not set in environment.");
   }
+  const appId = process.env.WHOP_APP_ID || process.env.NEXT_PUBLIC_WHOP_APP_ID;
+  if (!appId) {
+    throw new Error("WHOP_APP_ID (or NEXT_PUBLIC_WHOP_APP_ID) is not set.");
+  }
 
   try {
     // Try common constructor styles
     // eslint-disable-next-line new-cap
-    const client = new WhopClient({ apiKey });
+    const client = new WhopClient({ apiKey, appID: appId });
     return client;
   } catch {
     // Fallback: some SDKs expose a factory
     if (typeof sdkModule.createClient === "function") {
-      return sdkModule.createClient({ apiKey });
+      return sdkModule.createClient({ apiKey, appID: appId });
     }
     throw new Error("Unable to initialize @whop/sdk client.");
   }
