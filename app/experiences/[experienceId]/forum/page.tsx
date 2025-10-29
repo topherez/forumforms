@@ -19,33 +19,26 @@ export default async function ForumViewerPage({
   const companyId = (experience as any)?.company?.id as string | undefined;
   if (!companyId) return <div className="p-6">Could not determine company.</div>;
 
-  // REST: list experiences for the company to discover the Forum exp_ id
+  // SDK (GraphQL): list experiences for this company via withUser + withCompany
   let forumExpId: string | null = null;
   let expsStatus: number | null = null;
   let expsBody: any = null;
   let expsError: string | null = null;
   try {
-    const res = await fetch(`https://api.whop.com/v5/experiences?company_id=${encodeURIComponent(companyId)}&first=50`, {
-      headers: {
-        Authorization: `Bearer ${process.env.WHOP_API_KEY}`,
-        Accept: "application/json",
-      },
-      cache: "no-store",
-    });
-    expsStatus = res.status;
-    const text = await res.text();
-    try { expsBody = JSON.parse(text); } catch { expsBody = text; }
-    if (!res.ok) {
-      expsError = typeof expsBody === "string" ? expsBody : (expsBody?.message ?? JSON.stringify(expsBody));
-    } else {
-      const nodes: any[] = (expsBody as any)?.data ?? [];
-      const forumExp = nodes.find((e: any) =>
-        String(e?.app?.name ?? "").toLowerCase().includes("forum") ||
-        String(e?.route ?? e?.slug ?? "").toLowerCase().startsWith("forums-")
-      );
-      forumExpId = forumExp?.id ?? null;
-    }
+    const sdkAny: any = whopSdk as any;
+    const scopedUser = typeof sdkAny.withUser === "function" ? sdkAny.withUser(userId) : sdkAny;
+    const scoped = typeof scopedUser.withCompany === "function" ? scopedUser.withCompany(companyId) : scopedUser;
+    const resp: any = await scoped.experiences.listExperiences({ companyId, first: 50 });
+    const nodes: any[] = resp?.company?.experiencesV2?.nodes ?? resp?.nodes ?? resp?.experiences ?? [];
+    expsStatus = 200;
+    expsBody = { count: nodes.length };
+    const forumExp = nodes.find((e: any) =>
+      String(e?.app?.name ?? e?.name ?? "").toLowerCase().includes("forum") ||
+      String(e?.route ?? e?.slug ?? "").toLowerCase().startsWith("forums-")
+    );
+    forumExpId = forumExp?.id ?? forumExp?.experienceId ?? null;
   } catch (e: any) {
+    expsStatus = 500;
     expsError = String(e?.message ?? e);
   }
 
