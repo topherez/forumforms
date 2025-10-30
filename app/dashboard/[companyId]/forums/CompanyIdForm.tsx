@@ -31,7 +31,8 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
       return;
     }
     setLoading(true);
-    fetch(`/api/company-experiences?companyId=${encodeURIComponent(id)}`)
+    // Only show forum-capable experiences to avoid selecting a non-forum experience
+    fetch(`/api/company-forums?companyId=${encodeURIComponent(id)}`)
       .then(async (r) => {
         if (!r.ok) throw new Error(await r.text());
         return r.json();
