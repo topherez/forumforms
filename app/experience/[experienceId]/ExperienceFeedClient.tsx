@@ -20,10 +20,14 @@ export default function ExperienceFeedClient({
   const [pageInfo, setPageInfo] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [referrer, setReferrer] = useState<string>("");
+
   // Resolve experience id on the client if missing
   useEffect(() => {
+    setReferrer(typeof document !== "undefined" ? document.referrer : "");
     if (experienceId) return;
-    const fromRef = extractExpId(document.referrer) || extractExpId(window.location.href);
+    const fromRef = (typeof document !== "undefined" && extractExpId(document.referrer)) ||
+      (typeof window !== "undefined" && extractExpId(window.location.href)) || null;
     if (fromRef) {
       setExperienceId(fromRef);
       return;
@@ -64,7 +68,7 @@ export default function ExperienceFeedClient({
         <div className="text-sm text-gray-500">No experiences found in this context.</div>
         <details className="text-xs text-gray-500">
           <summary>Debug</summary>
-          <div>referrer: {document.referrer || "(none)"}</div>
+          <div>referrer: {referrer || "(none)"}</div>
           <div>companyId: {initialCompanyId || "(none)"}</div>
         </details>
       </div>
