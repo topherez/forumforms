@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     }
     const resp: any = await (sdk as any).forumPosts?.list?.({
       experience_id: experienceId,
-      limit: 20,
+      first: 20,
     });
     return NextResponse.json({
       posts: resp?.data ?? resp?.items ?? [],

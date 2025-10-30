@@ -51,14 +51,17 @@ export default function ExperienceFeedClient({
     setError(null);
     fetch(`/api/forum?experienceId=${encodeURIComponent(experienceId)}`)
       .then(async (r) => {
-        if (!r.ok) throw new Error(await r.text());
-        return r.json();
+        const body = await r.text();
+        let json: any = {};
+        try { json = body ? JSON.parse(body) : {}; } catch {}
+        if (!r.ok) throw new Error(json?.error || body || `HTTP ${r.status}`);
+        return json;
       })
       .then((j) => {
         setPosts(j?.posts ?? []);
         setPageInfo(j?.pageInfo ?? null);
       })
-      .catch(() => setError("Unable to load posts for this experience."));
+      .catch((e) => setError(e?.message || "Unable to load posts for this experience."));
   }, [experienceId]);
 
   if (!experienceId) {
