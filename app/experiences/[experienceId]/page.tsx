@@ -31,9 +31,27 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
   // Expecting shape: { data, page_info } or similar
   // Pinned first; fall back gracefully if parameter unsupported
   if (!experienceId) {
+    const companyId = normalize(h.get("x-whop-company-id"));
+    let experiences: any[] = [];
+    try {
+      if (companyId) {
+        const resp: any = await (sdk as any).experiences.list({ company_id: companyId, limit: 20 });
+        experiences = resp?.data ?? resp?.items ?? [];
+      }
+    } catch {}
     return (
-      <div className="p-4 text-sm text-gray-600">
-        Missing experience ID. Ensure Hosting path is set to <code>/experiences/:experienceId</code>.
+      <div className="p-4 space-y-4">
+        <div className="text-sm text-gray-600">Select an experience to view its forum.</div>
+        <ul className="space-y-2">
+          {experiences.map((e: any) => (
+            <li key={e.id}>
+              <a className="text-indigo-600 hover:underline" href={`/experiences/${e.id}`}>{e.name || e.id}</a>
+            </li>
+          ))}
+          {experiences.length === 0 && (
+            <li className="text-sm text-gray-500">No experiences found in this context.</li>
+          )}
+        </ul>
       </div>
     );
   }
