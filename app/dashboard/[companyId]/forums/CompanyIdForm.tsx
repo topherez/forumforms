@@ -11,11 +11,13 @@ function extractCompanyId(input: string): string | null {
 export default function CompanyIdForm({ initial }: { initial?: string }) {
   const [value, setValue] = useState(initial ?? "");
   const [error, setError] = useState<string | null>(null);
+  const derivedId = extractCompanyId(value) || value;
+  const isValid = Boolean(derivedId && derivedId.startsWith("biz_"));
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const id = extractCompanyId(value) || value;
-    if (!id || !id.startsWith("biz_")) {
+    const id = derivedId;
+    if (!isValid) {
       setError("Please enter a valid company ID (biz_...) or dashboard URL.");
       return;
     }
@@ -33,6 +35,14 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
         onChange={(e) => setValue(e.target.value)}
       />
       <button className="bg-indigo-600 text-white px-4 py-2 rounded" type="submit">Continue</button>
+      {isValid && (
+        <a
+          className="text-indigo-600 underline self-center"
+          href={`/dashboard/${derivedId}/forums`}
+        >
+          Open
+        </a>
+      )}
       {error && <div className="text-xs text-red-600 self-center">{error}</div>}
     </form>
   );
