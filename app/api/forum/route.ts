@@ -10,7 +10,7 @@ export async function GET(request: Request) {
 
   try {
     const sdk = getWhopSdk();
-    if (!experienceId && companyId) {
+    if (!experienceId && companyId && prisma) {
       const bound = await prisma.forumBinding.findFirst({ where: { companyId, enabled: true } });
       if (bound?.forumId) experienceId = bound.forumId;
     }
