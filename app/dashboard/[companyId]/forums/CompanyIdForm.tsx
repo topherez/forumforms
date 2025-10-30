@@ -114,7 +114,7 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
         </div>
         {selected && (
           <div className="pt-2">
-            <a className="text-indigo-600 underline" href={`/experience/${selected}`}>Open member feed</a>
+            <a className="text-indigo-600 underline" href={`/experience/${selected}?companyId=${encodeURIComponent(resolvedId || "")}`}>Open member feed</a>
           </div>
         )}
       </div>

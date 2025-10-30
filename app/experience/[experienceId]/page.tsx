@@ -26,7 +26,14 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
       : undefined
   );
   const experienceId = routeId || headerId || queryId;
-  const companyId = h.get("x-whop-company-id") || undefined;
+  const companyIdHeader = h.get("x-whop-company-id") || undefined;
+  const companyIdQuery =
+    typeof searchParams?.companyId === "string"
+      ? (searchParams?.companyId as string)
+      : Array.isArray(searchParams?.companyId)
+      ? (searchParams?.companyId?.[0] as string)
+      : undefined;
+  const companyId = companyIdHeader || companyIdQuery || undefined;
 
   if (!experienceId) {
     // Fallback: try company context then let the user choose
@@ -72,17 +79,26 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
     );
   }
 
-  // If we have an explicit experienceId, use the SDK directly per docs:
-  // https://docs.whop.com/api-reference/forum-posts/list-forum-posts
+  // Prefer resolving via DB binding (companyId) so we always hit the correct
+  // forum experience saved from the dashboard. Fallback to route param.
+  let resolvedExperienceId = experienceId as string | undefined;
+  if (companyId) {
+    try {
+      const b = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/api/bindings?companyId=${encodeURIComponent(companyId)}`, { cache: "no-store" });
+      const bj = (await b.json().catch(() => ({}))) as any;
+      const bound = bj?.bindings?.[0]?.forumId as string | undefined;
+      if (bound?.startsWith("exp_")) resolvedExperienceId = bound;
+    } catch {}
+  }
+
   let posts: any[] = [];
   let pageInfo: any = null;
-  if (experienceId) {
+  if (resolvedExperienceId) {
     const sdk = getWhopSdk();
-    const resp: any = await (sdk as any).forumPosts.list({ experience_id: experienceId, first: 20 });
+    const resp: any = await (sdk as any).forumPosts.list({ experience_id: resolvedExperienceId, first: 20 });
     posts = resp?.data ?? resp?.items ?? [];
     pageInfo = resp?.page_info ?? resp?.pageInfo ?? null;
   } else if (companyId) {
-    // Otherwise, fall back to bound experience via our API
     const qs = new URLSearchParams({ companyId }).toString();
     const apiResp = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/api/forum?${qs}`, { cache: "no-store" });
     const json = (await apiResp.json().catch(() => ({}))) as any;

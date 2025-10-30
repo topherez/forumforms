@@ -26,23 +26,28 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
       : undefined
   );
   const experienceId = routeId || headerId || queryId;
-  const companyId = h.get("x-whop-company-id") || undefined;
+  const companyIdHeader = h.get("x-whop-company-id") || undefined;
+  const companyIdQuery =
+    typeof searchParams?.companyId === "string"
+      ? (searchParams?.companyId as string)
+      : Array.isArray(searchParams?.companyId)
+      ? (searchParams?.companyId?.[0] as string)
+      : undefined;
+  const companyId = companyIdHeader || companyIdQuery || undefined;
 
-  // Attempt to fetch posts via SDK. Adjust method names if SDK differs.
-  // Expecting shape: { data, page_info } or similar
-  // Pinned first; fall back gracefully if parameter unsupported
+  // Attempt to fetch posts via SDK or fall back to API
   if (!experienceId) {
-    const companyId = normalize(h.get("x-whop-company-id"));
+    const cid = normalize(companyId || null);
     let experiences: any[] = [];
     try {
-      if (companyId) {
-        const respForums: any = await (sdk as any).forums.list({ company_id: companyId, first: 50 });
+      if (cid) {
+        const respForums: any = await (sdk as any).forums.list({ company_id: cid, first: 50 });
         const forums: any[] = respForums?.data ?? respForums?.items ?? [];
         experiences = forums
           .map((f: any) => ({ id: f?.experience?.id, name: f?.experience?.name }))
           .filter((e: any) => Boolean(e?.id));
         if (experiences.length === 0) {
-          const respExps: any = await (sdk as any).experiences.list({ company_id: companyId, first: 50 });
+          const respExps: any = await (sdk as any).experiences.list({ company_id: cid, first: 50 });
           experiences = (respExps?.data ?? respExps?.items ?? []).map((e: any) => ({ id: e.id, name: e.name }));
         }
       }
@@ -71,10 +76,21 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
       </div>
     );
   }
+  // Prefer DB binding resolution
+  let resolvedExperienceId = experienceId as string | undefined;
+  if (companyId) {
+    try {
+      const b = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/api/bindings?companyId=${encodeURIComponent(companyId)}`, { cache: "no-store" });
+      const bj = (await b.json().catch(() => ({}))) as any;
+      const bound = bj?.bindings?.[0]?.forumId as string | undefined;
+      if (bound?.startsWith("exp_")) resolvedExperienceId = bound;
+    } catch {}
+  }
+
   let posts: any[] = [];
   let pageInfo: any = null;
-  if (experienceId) {
-    const resp: any = await (sdk as any).forumPosts.list({ experience_id: experienceId, first: 20 });
+  if (resolvedExperienceId) {
+    const resp: any = await (sdk as any).forumPosts.list({ experience_id: resolvedExperienceId, first: 20 });
     posts = resp?.data ?? resp?.items ?? [];
     pageInfo = resp?.page_info ?? resp?.pageInfo ?? null;
   } else if (companyId) {
