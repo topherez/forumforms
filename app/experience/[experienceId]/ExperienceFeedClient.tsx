@@ -15,7 +15,19 @@ export default function ExperienceFeedClient({
   initialExperienceId?: string | null;
   initialCompanyId?: string | null;
 }) {
-  const [experienceId, setExperienceId] = useState<string | null>(initialExperienceId ?? null);
+  // Read cookies set from dashboard binding flow
+  const cookieMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    document.cookie.split(";").forEach((p) => {
+      const [k, v] = p.split("=");
+      if (k && v) map[k.trim()] = decodeURIComponent(v);
+    });
+    return map;
+  }, []);
+  const cookieExp = cookieMap["ff_forum_exp_id"] || null;
+  const cookieCompany = cookieMap["ff_company_id"] || null;
+
+  const [experienceId, setExperienceId] = useState<string | null>(initialExperienceId ?? cookieExp ?? null);
   const [posts, setPosts] = useState<any[]>([]);
   const [pageInfo, setPageInfo] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -29,8 +41,9 @@ export default function ExperienceFeedClient({
       return;
     }
     // If we still don't have it but have company id, try DB binding in a client call
-    if (initialCompanyId) {
-      fetch(`/api/bindings?companyId=${encodeURIComponent(initialCompanyId)}`)
+    const cid = initialCompanyId || cookieCompany || null;
+    if (cid) {
+      fetch(`/api/bindings?companyId=${encodeURIComponent(cid)}`)
         .then((r) => r.json())
         .then((j) => {
           const bound = j?.bindings?.[0]?.forumId as string | undefined;
@@ -38,7 +51,7 @@ export default function ExperienceFeedClient({
         })
         .catch(() => {});
     }
-  }, [experienceId, initialCompanyId]);
+  }, [experienceId, initialCompanyId, cookieCompany]);
 
   // Fetch posts once we have an experience id
   useEffect(() => {
@@ -64,7 +77,7 @@ export default function ExperienceFeedClient({
         <details className="text-xs text-gray-500">
           <summary>Debug</summary>
           <div>referrer: {document.referrer || "(none)"}</div>
-          <div>companyId: {initialCompanyId || "(none)"}</div>
+          <div>companyId: {initialCompanyId || cookieCompany || "(none)"}</div>
         </details>
       </div>
     );

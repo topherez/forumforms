@@ -97,6 +97,11 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
                 body: JSON.stringify({ companyId: resolvedId, experienceId: selected }),
               });
               if (res.ok) {
+                // Persist for member view in iframe (same origin), 30 days
+                try {
+                  if (resolvedId) document.cookie = `ff_company_id=${resolvedId}; path=/; max-age=${60 * 60 * 24 * 30}`;
+                  if (selected) document.cookie = `ff_forum_exp_id=${selected}; path=/; max-age=${60 * 60 * 24 * 30}`;
+                } catch {}
                 setSaveMsg("Saved. View member feed below.");
               } else {
                 let msg = "Failed to save binding; check DB connection and permissions.";
