@@ -67,12 +67,21 @@ export default async function DashboardForumsPage({ params, searchParams }: Page
     );
   }
 
-  const resp: any = await (sdk as any).experiences.list({ company_id: companyId, limit: 50 });
-  const experiences: any[] = resp?.data ?? resp?.items ?? [];
+  // Prefer forums.list so we directly link to the forum experience
+  const respForums: any = await (sdk as any).forums?.list?.({ company_id: companyId, first: 50 });
+  const forums: any[] = respForums?.data ?? respForums?.items ?? [];
+  let experiences: any[] = forums
+    .map((f: any) => ({ id: f?.experience?.id, name: f?.experience?.name }))
+    .filter((e: any) => Boolean(e?.id));
+  if (experiences.length === 0) {
+    const respExps: any = await (sdk as any).experiences.list({ company_id: companyId, first: 50 });
+    experiences = (respExps?.data ?? respExps?.items ?? []).map((e: any) => ({ id: e.id, name: e.name }));
+  }
 
   return (
     <div className="p-4 space-y-4">
       <h1 className="text-2xl font-bold">Forums by Experience</h1>
+      <div className="text-xs text-gray-500">Resolved company: <span className="font-mono">{companyId}</span></div>
       <ul className="space-y-2">
         {experiences.map((e) => (
           <li key={e.id} className="border p-3 rounded bg-white flex items-center justify-between">
