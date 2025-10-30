@@ -1,18 +1,29 @@
+import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { getWhopSdk } from "@/lib/whop-sdk";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const experienceId = searchParams.get("experienceId");
-  if (!experienceId) {
-    return NextResponse.json(
-      { error: "Missing experienceId" },
-      { status: 400 }
-    );
-  }
+  let experienceId = searchParams.get("experienceId");
+  const companyId = searchParams.get("companyId") || (await headers()).get("x-whop-company-id");
 
   try {
     const sdk = getWhopSdk();
+    if (!experienceId && companyId) {
+      // Resolve via forums.list -> experience.id
+      const respForums: any = await (sdk as any).forums?.list?.({ company_id: companyId, first: 1 });
+      const forums: any[] = respForums?.data ?? respForums?.items ?? [];
+      experienceId = forums?.[0]?.experience?.id || null;
+      if (!experienceId) {
+        return NextResponse.json({ posts: [], pageInfo: null }, { status: 200 });
+      }
+    }
+    if (!experienceId) {
+      return NextResponse.json(
+        { error: "Missing experienceId and companyId" },
+        { status: 400 }
+      );
+    }
     const resp: any = await (sdk as any).forumPosts?.list?.({
       experience_id: experienceId,
       limit: 20,

@@ -35,8 +35,15 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
     let experiences: any[] = [];
     try {
       if (companyId) {
-        const resp: any = await (sdk as any).experiences.list({ company_id: companyId, limit: 20 });
-        experiences = resp?.data ?? resp?.items ?? [];
+        const respForums: any = await (sdk as any).forums.list({ company_id: companyId, first: 50 });
+        const forums: any[] = respForums?.data ?? respForums?.items ?? [];
+        experiences = forums
+          .map((f: any) => ({ id: f?.experience?.id, name: f?.experience?.name }))
+          .filter((e: any) => Boolean(e?.id));
+        if (experiences.length === 0) {
+          const respExps: any = await (sdk as any).experiences.list({ company_id: companyId, first: 50 });
+          experiences = (respExps?.data ?? respExps?.items ?? []).map((e: any) => ({ id: e.id, name: e.name }));
+        }
       }
     } catch {}
     const whopHeaders: Array<[string, string]> = [];
