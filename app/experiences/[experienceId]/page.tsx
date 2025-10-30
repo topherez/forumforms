@@ -39,6 +39,10 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
         experiences = resp?.data ?? resp?.items ?? [];
       }
     } catch {}
+    const whopHeaders: Array<[string, string]> = [];
+    h.forEach((value, key) => {
+      if (key.startsWith("x-whop-")) whopHeaders.push([key, value]);
+    });
     return (
       <div className="p-4 space-y-4">
         <div className="text-sm text-gray-600">Select an experience to view its forum.</div>
@@ -52,6 +56,10 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
             <li className="text-sm text-gray-500">No experiences found in this context.</li>
           )}
         </ul>
+        <details className="text-xs text-gray-500">
+          <summary>Debug headers</summary>
+          <pre>{JSON.stringify(Object.fromEntries(whopHeaders), null, 2)}</pre>
+        </details>
       </div>
     );
   }
