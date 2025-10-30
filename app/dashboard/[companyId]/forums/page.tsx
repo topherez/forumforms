@@ -1,5 +1,4 @@
-import { cookies, headers } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { getWhopSdk } from "@/lib/whop-sdk";
 // CompanyIdForm kept as a fallback, but we prefer server action below
 import CompanyIdForm from "./CompanyIdForm";
@@ -11,17 +10,7 @@ interface PageProps {
 
 export default async function DashboardForumsPage({ params, searchParams }: PageProps) {
   const sdk = getWhopSdk();
-  async function setCompanyId(formData: FormData) {
-    "use server";
-    const raw = String(formData.get("companyInput") || "");
-    const match = raw.match(/\b(biz_[A-Za-z0-9]+)\b/);
-    const id = match ? match[1] : raw;
-    if (id && id.startsWith("biz_")) {
-      const jar = await cookies();
-      jar.set("ff_company_id", id, { path: "/", maxAge: 60 * 60 * 24 });
-      revalidatePath("/dashboard/[companyId]/forums", "page");
-    }
-  }
+  // No server actions; Whop blocks cross-origin server action posts. Client form will fetch API.
   const normalize = (v?: string | null) => {
     if (!v) return null;
     if (v === "undefined") return null;
@@ -53,8 +42,7 @@ export default async function DashboardForumsPage({ params, searchParams }: Page
   const urlCompanyId = normalize(extractCompanyId(pastedUrl));
   const h = await headers();
   const headerCompanyId = normalize(h.get("x-whop-company-id"));
-  const jar = await cookies();
-  const cookieCompanyId = normalize(jar.get("ff_company_id")?.value || null);
+  const cookieCompanyId = null;
   const envCompanyId = normalize(process.env.WHOP_COMPANY_ID || process.env.NEXT_PUBLIC_WHOP_COMPANY_ID || null);
   const companyId = routeCompanyId || queryCompanyId || urlCompanyId || headerCompanyId || cookieCompanyId || envCompanyId;
 
@@ -64,16 +52,7 @@ export default async function DashboardForumsPage({ params, searchParams }: Page
         <div className="text-sm text-gray-600">
           Missing company ID. Paste your Whop dashboard URL (or company ID):
         </div>
-        <form className="flex gap-2" action={setCompanyId}>
-          <input
-            type="text"
-            name="companyInput"
-            placeholder="Paste company URL or ID (biz_XXXXXXXX)"
-            className="w-full border rounded px-3 py-2"
-            defaultValue={rawQueryCompanyId || pastedUrl || ""}
-          />
-          <button className="bg-indigo-600 text-white px-4 py-2 rounded" type="submit">Continue</button>
-        </form>
+        <CompanyIdForm initial={rawQueryCompanyId || pastedUrl || ""} />
         <div className="text-xs text-gray-500">
           Tip: We’ll extract the company ID (e.g., biz_Dh5EJMELZPVzHS) from a URL like
           {" "}
