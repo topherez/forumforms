@@ -1,5 +1,5 @@
 import { headers } from "next/headers";
-import { getWhopSdk } from "@/lib/whop-sdk";
+import ExperienceFeedClient from "./ExperienceFeedClient";
 
 interface PageProps {
   params: { experienceId: string };
@@ -7,7 +7,6 @@ interface PageProps {
 }
 
 export default async function ExperienceForumPage({ params, searchParams }: PageProps) {
-  const sdk = getWhopSdk();
   const normalize = (v?: string | null) => {
     if (!v) return null;
     if (v === "undefined") return null;
@@ -18,6 +17,8 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
   const routeId = normalize(params.experienceId);
   const h = await headers();
   const headerId = normalize(h.get("x-whop-experience-id"));
+  const referer = h.get("referer") || "";
+  const refererExp = referer.match(/(exp_[A-Za-z0-9]+)/)?.[1] || null;
   const queryId = normalize(
     typeof searchParams?.experienceId === "string"
       ? (searchParams?.experienceId as string)
@@ -25,7 +26,7 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
       ? (searchParams?.experienceId?.[0] as string)
       : undefined
   );
-  const experienceId = routeId || headerId || queryId;
+  const experienceId = routeId || headerId || queryId || refererExp;
   const companyIdHeader = h.get("x-whop-company-id") || undefined;
   const companyIdQuery =
     typeof searchParams?.companyId === "string"
@@ -36,46 +37,7 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
   const companyId = companyIdHeader || companyIdQuery || undefined;
 
   // Attempt to fetch posts via SDK or fall back to API
-  if (!experienceId) {
-    const cid = normalize(companyId || null);
-    let experiences: any[] = [];
-    try {
-      if (cid) {
-        const respForums: any = await (sdk as any).forums.list({ company_id: cid, first: 50 });
-        const forums: any[] = respForums?.data ?? respForums?.items ?? [];
-        experiences = forums
-          .map((f: any) => ({ id: f?.experience?.id, name: f?.experience?.name }))
-          .filter((e: any) => Boolean(e?.id));
-        if (experiences.length === 0) {
-          const respExps: any = await (sdk as any).experiences.list({ company_id: cid, first: 50 });
-          experiences = (respExps?.data ?? respExps?.items ?? []).map((e: any) => ({ id: e.id, name: e.name }));
-        }
-      }
-    } catch {}
-    const whopHeaders: Array<[string, string]> = [];
-    h.forEach((value, key) => {
-      if (key.startsWith("x-whop-")) whopHeaders.push([key, value]);
-    });
-    return (
-      <div className="p-4 space-y-4">
-        <div className="text-sm text-gray-600">Select an experience to view its forum.</div>
-        <ul className="space-y-2">
-          {experiences.map((e: any) => (
-            <li key={e.id}>
-              <a className="text-indigo-600 hover:underline" href={`/experiences/${e.id}`}>{e.name || e.id}</a>
-            </li>
-          ))}
-          {experiences.length === 0 && (
-            <li className="text-sm text-gray-500">No experiences found in this context.</li>
-          )}
-        </ul>
-        <details className="text-xs text-gray-500">
-          <summary>Debug headers</summary>
-          <pre>{JSON.stringify(Object.fromEntries(whopHeaders), null, 2)}</pre>
-        </details>
-      </div>
-    );
-  }
+  // Server no longer lists; client component handles fallback/UI
   // Prefer DB binding resolution
   let resolvedExperienceId = experienceId as string | undefined;
   if (companyId) {
@@ -87,44 +49,13 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
     } catch {}
   }
 
-  let posts: any[] = [];
-  let pageInfo: any = null;
-  if (resolvedExperienceId) {
-    const resp: any = await (sdk as any).forumPosts.list({ experience_id: resolvedExperienceId, first: 20 });
-    posts = resp?.data ?? resp?.items ?? [];
-    pageInfo = resp?.page_info ?? resp?.pageInfo ?? null;
-  } else if (companyId) {
-    const qs = new URLSearchParams({ companyId }).toString();
-    const apiResp = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/api/forum?${qs}`, { cache: "no-store" });
-    const json = (await apiResp.json().catch(() => ({}))) as any;
-    posts = json?.posts ?? [];
-    pageInfo = json?.pageInfo ?? null;
-  }
-
   return (
     <div className="p-4 space-y-4">
       <h1 className="text-2xl font-bold">Forum Feed</h1>
-      <ul className="space-y-2">
-        {posts.map((post: any) => (
-          <li key={post.id} className="border p-3 rounded bg-white">
-            <h2 className="text-xl font-semibold">{post.title}</h2>
-            {post.content ? (
-              <p className="text-gray-600 mt-2 whitespace-pre-wrap">{post.content}</p>
-            ) : null}
-            <div className="text-sm text-gray-500 mt-3">
-              By {post.user?.name || post.user?.username || "Unknown"}
-              {typeof post.like_count === "number" ? ` • ${post.like_count} likes` : ""}
-              {typeof post.comment_count === "number" ? ` • ${post.comment_count} comments` : ""}
-            </div>
-          </li>
-        ))}
-        {posts.length === 0 && (
-          <li className="text-sm text-gray-500">No forum posts yet.</li>
-        )}
-      </ul>
-      {pageInfo?.has_next_page && (
-        <div className="pt-4 text-center text-base text-gray-600">More posts available…</div>
-      )}
+      <ExperienceFeedClient
+        initialExperienceId={resolvedExperienceId ?? experienceId ?? null}
+        initialCompanyId={companyId ?? null}
+      />
     </div>
   );
 }
