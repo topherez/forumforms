@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { getWhopSdk } from "@/lib/whop-sdk";
+import CompanyIdForm from "./CompanyIdForm";
 
 interface PageProps {
   params: { companyId: string };
@@ -48,16 +49,7 @@ export default async function DashboardForumsPage({ params, searchParams }: Page
         <div className="text-sm text-gray-600">
           Missing company ID. Paste your Whop dashboard URL (or company ID):
         </div>
-        <form className="flex gap-2" method="get">
-          <input
-            type="text"
-            name="companyId"
-            placeholder="Paste company URL or ID (biz_XXXXXXXX)"
-            className="w-full border rounded px-3 py-2"
-            defaultValue={rawQueryCompanyId || pastedUrl || ""}
-          />
-          <button className="bg-indigo-600 text-white px-4 py-2 rounded" type="submit">Continue</button>
-        </form>
+        <CompanyIdForm initial={rawQueryCompanyId || pastedUrl || ""} />
         <div className="text-xs text-gray-500">
           Tip: We’ll extract the company ID (e.g., biz_Dh5EJMELZPVzHS) from a URL like
           {" "}
