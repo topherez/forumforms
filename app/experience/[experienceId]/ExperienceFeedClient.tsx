@@ -15,19 +15,7 @@ export default function ExperienceFeedClient({
   initialExperienceId?: string | null;
   initialCompanyId?: string | null;
 }) {
-  // Read cookies set from dashboard binding flow
-  const cookieMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    document.cookie.split(";").forEach((p) => {
-      const [k, v] = p.split("=");
-      if (k && v) map[k.trim()] = decodeURIComponent(v);
-    });
-    return map;
-  }, []);
-  const cookieExp = cookieMap["ff_forum_exp_id"] || null;
-  const cookieCompany = cookieMap["ff_company_id"] || null;
-
-  const [experienceId, setExperienceId] = useState<string | null>(initialExperienceId ?? cookieExp ?? null);
+  const [experienceId, setExperienceId] = useState<string | null>(initialExperienceId ?? null);
   const [posts, setPosts] = useState<any[]>([]);
   const [pageInfo, setPageInfo] = useState<any | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -35,13 +23,13 @@ export default function ExperienceFeedClient({
   // Resolve experience id on the client if missing
   useEffect(() => {
     if (experienceId) return;
-    const fromRef = extractExpId(document.referrer);
+    const fromRef = extractExpId(document.referrer) || extractExpId(window.location.href);
     if (fromRef) {
       setExperienceId(fromRef);
       return;
     }
     // If we still don't have it but have company id, try DB binding in a client call
-    const cid = initialCompanyId || cookieCompany || null;
+    const cid = initialCompanyId || null;
     if (cid) {
       fetch(`/api/bindings?companyId=${encodeURIComponent(cid)}`)
         .then((r) => r.json())
@@ -51,7 +39,7 @@ export default function ExperienceFeedClient({
         })
         .catch(() => {});
     }
-  }, [experienceId, initialCompanyId, cookieCompany]);
+  }, [experienceId, initialCompanyId]);
 
   // Fetch posts once we have an experience id
   useEffect(() => {
@@ -77,7 +65,7 @@ export default function ExperienceFeedClient({
         <details className="text-xs text-gray-500">
           <summary>Debug</summary>
           <div>referrer: {document.referrer || "(none)"}</div>
-          <div>companyId: {initialCompanyId || cookieCompany || "(none)"}</div>
+          <div>companyId: {initialCompanyId || "(none)"}</div>
         </details>
       </div>
     );

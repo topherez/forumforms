@@ -4,10 +4,24 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const companyId = searchParams.get("companyId");
-  if (!companyId) return NextResponse.json({ error: "companyId required" }, { status: 400 });
+  const experienceId = searchParams.get("experienceId");
   if (!prisma) return NextResponse.json({ error: "Prisma client unavailable" }, { status: 500 });
-  const bindings = await prisma.forumBinding.findMany({ where: { companyId, enabled: true } });
-  return NextResponse.json({ bindings });
+  if (experienceId) {
+    const binding = await prisma.forumBinding.findFirst({ where: { forumId: experienceId, enabled: true } });
+    return NextResponse.json({ bindings: binding ? [binding] : [] });
+  }
+  if (companyId) {
+    const bindings = await prisma.forumBinding.findMany({ where: { companyId, enabled: true } });
+    return NextResponse.json({ bindings });
+  }
+  // Fallback: return latest enabled binding across all companies (for member view when
+  // company context is unavailable in iframe). Safe enough for single-tenant testing.
+  const latest = await prisma.forumBinding.findMany({
+    where: { enabled: true },
+    orderBy: { updatedAt: "desc" },
+    take: 1,
+  });
+  return NextResponse.json({ bindings: latest });
 }
 
 export async function POST(request: Request) {
