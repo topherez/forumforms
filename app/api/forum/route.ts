@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { getWhopSdk } from "@/lib/whop-sdk";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -9,6 +10,10 @@ export async function GET(request: Request) {
 
   try {
     const sdk = getWhopSdk();
+    if (!experienceId && companyId) {
+      const bound = await prisma.forumBinding.findFirst({ where: { companyId, enabled: true } });
+      if (bound?.forumId) experienceId = bound.forumId;
+    }
     if (!experienceId && companyId) {
       // Resolve via forums.list -> experience.id
       const respForums: any = await (sdk as any).forums?.list?.({ company_id: companyId, first: 1 });

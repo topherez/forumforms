@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@prisma/client": "^6.18.0",
     "@whop/react": "^0.3.0",
     "@whop/sdk": "^0.0.2",
     "next": "^16.0.1",
@@ -24,4 +25,3 @@
     "typescript": "^5.4.5"
   }
 }
-

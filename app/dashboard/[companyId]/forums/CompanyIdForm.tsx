@@ -15,6 +15,8 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
   const isValid = Boolean(derivedId && derivedId.startsWith("biz_"));
   const [resolvedId, setResolvedId] = useState<string | null>(null);
   const [experiences, setExperiences] = useState<Array<{ id: string; name?: string }>>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
       .then((json) => {
         setResolvedId(json.companyId);
         setExperiences(json.experiences || []);
+        setSelected(null);
       })
       .catch(() => setError("Unable to fetch forums for that company. Check permissions and ID."))
       .finally(() => setLoading(false));
@@ -62,15 +65,45 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
         <div className="text-xs text-gray-500">Resolved company: <span className="font-mono">{resolvedId}</span></div>
         <ul className="space-y-2">
           {experiences.map((e) => (
-            <li key={e.id} className="border p-3 rounded bg-white">
-              <div className="text-sm font-medium">{e.name || e.id}</div>
-              <div className="text-xs text-gray-500 font-mono">{e.id}</div>
+            <li key={e.id} className="border p-3 rounded bg-white flex items-start gap-3">
+              <input
+                type="radio"
+                name="exp"
+                value={e.id}
+                checked={selected === e.id}
+                onChange={() => setSelected(e.id)}
+                className="mt-1"
+              />
+              <div>
+                <div className="text-sm font-medium">{e.name || e.id}</div>
+                <div className="text-xs text-gray-500 font-mono">{e.id}</div>
+              </div>
             </li>
           ))}
           {experiences.length === 0 && (
             <li className="text-sm text-gray-500">No forums found for this company.</li>
           )}
         </ul>
+        <div className="flex items-center gap-2">
+          <button
+            className="bg-indigo-600 text-white px-4 py-2 rounded disabled:opacity-50"
+            disabled={!selected}
+            onClick={async () => {
+              setSaveMsg(null);
+              if (!selected || !resolvedId) return;
+              const res = await fetch("/api/bindings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ companyId: resolvedId, experienceId: selected }),
+              });
+              if (res.ok) setSaveMsg("Saved. You can now view posts via the experience route.");
+              else setSaveMsg("Failed to save binding; check DB connection and permissions.");
+            }}
+          >
+            Save as forum experience
+          </button>
+          {saveMsg && <div className="text-xs text-gray-600">{saveMsg}</div>}
+        </div>
       </div>
     )}
     </>
