@@ -22,13 +22,13 @@ export default async function DashboardForumsPage({ params, searchParams }: Page
     return direct ? direct[1] : null;
   };
   const routeCompanyId = normalize(params.companyId);
-  const queryCompanyId = normalize(
+  const rawQueryCompanyId =
     typeof searchParams?.companyId === "string"
       ? (searchParams?.companyId as string)
       : Array.isArray(searchParams?.companyId)
       ? (searchParams?.companyId?.[0] as string)
-      : undefined
-  );
+      : undefined;
+  const queryCompanyId = normalize(extractCompanyId(rawQueryCompanyId) || rawQueryCompanyId || null);
   // Optional dashboardUrl query param (paste-in)
   const pastedUrl =
     typeof searchParams?.dashboardUrl === "string"
@@ -51,10 +51,10 @@ export default async function DashboardForumsPage({ params, searchParams }: Page
         <form className="flex gap-2" method="get">
           <input
             type="text"
-            name="dashboardUrl"
-            placeholder="https://whop.com/dashboard/biz_XXXXXXXX"
+            name="companyId"
+            placeholder="Paste company URL or ID (biz_XXXXXXXX)"
             className="w-full border rounded px-3 py-2"
-            defaultValue=""
+            defaultValue={rawQueryCompanyId || pastedUrl || ""}
           />
           <button className="bg-indigo-600 text-white px-4 py-2 rounded" type="submit">Continue</button>
         </form>
