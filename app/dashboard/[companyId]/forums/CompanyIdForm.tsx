@@ -51,7 +51,7 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
       <input
         type="text"
         placeholder="Paste company URL or ID (biz_XXXXXXXX)"
-        className="w-full border rounded px-3 py-2"
+        className="w-full border rounded px-3 py-2 bg-white text-gray-900 placeholder-gray-500"
         value={value}
         onChange={(e) => setValue(e.target.value)}
       />
@@ -61,27 +61,27 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
       {error && <div className="text-xs text-red-600 self-center">{error}</div>}
     </form>
     {resolvedId && (
-      <div className="mt-4 space-y-2">
-        <div className="text-xs text-gray-500">Resolved company: <span className="font-mono">{resolvedId}</span></div>
+      <div className="mt-4 space-y-3">
+        <div className="text-sm text-gray-700">Resolved company: <span className="font-mono text-gray-900">{resolvedId}</span></div>
         <ul className="space-y-2">
           {experiences.map((e) => (
-            <li key={e.id} className="border p-3 rounded bg-white flex items-start gap-3">
+            <li key={e.id} className="border p-3 rounded bg-white flex items-start gap-3 hover:shadow-sm">
               <input
                 type="radio"
                 name="exp"
                 value={e.id}
                 checked={selected === e.id}
                 onChange={() => setSelected(e.id)}
-                className="mt-1"
+                className="mt-1 h-4 w-4"
               />
               <div>
-                <div className="text-sm font-medium">{e.name || e.id}</div>
-                <div className="text-xs text-gray-500 font-mono">{e.id}</div>
+                <div className="text-sm font-semibold text-gray-900">{e.name || "Untitled experience"}</div>
+                <div className="text-xs text-gray-600 font-mono">{e.id}</div>
               </div>
             </li>
           ))}
           {experiences.length === 0 && (
-            <li className="text-sm text-gray-500">No forums found for this company.</li>
+            <li className="text-sm text-gray-600">No experiences found for this company.</li>
           )}
         </ul>
         <div className="flex items-center gap-2">

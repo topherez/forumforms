@@ -22,10 +22,16 @@ export async function POST(request: Request) {
   }
   if (!prisma) return NextResponse.json({ error: "Prisma client unavailable" }, { status: 500 });
   try {
-    // Ensure a single active binding per company: disable existing
-    await prisma.forumBinding.updateMany({ where: { companyId }, data: { enabled: false } });
-    const created = await prisma.forumBinding.create({
-      data: { companyId, forumId: experienceId, enabled: true },
+    // Disable any other bindings for this company (keep only the chosen one enabled)
+    await prisma.forumBinding.updateMany({
+      where: { companyId, NOT: { forumId: experienceId } },
+      data: { enabled: false },
+    });
+    // Upsert on the compound unique (companyId, forumId) to avoid duplicate errors
+    const created = await prisma.forumBinding.upsert({
+      where: { companyId_forumId: { companyId, forumId: experienceId } },
+      update: { enabled: true },
+      create: { companyId, forumId: experienceId, enabled: true },
     });
     return NextResponse.json({ binding: created });
   } catch (err: any) {
