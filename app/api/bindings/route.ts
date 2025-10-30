@@ -21,12 +21,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid experienceId" }, { status: 400 });
   }
   if (!prisma) return NextResponse.json({ error: "Prisma client unavailable" }, { status: 500 });
-  // Ensure a single active binding per company: disable existing
-  await prisma.forumBinding.updateMany({ where: { companyId }, data: { enabled: false } });
-  const created = await prisma.forumBinding.create({
-    data: { companyId, forumId: experienceId, enabled: true },
-  });
-  return NextResponse.json({ binding: created });
+  try {
+    // Ensure a single active binding per company: disable existing
+    await prisma.forumBinding.updateMany({ where: { companyId }, data: { enabled: false } });
+    const created = await prisma.forumBinding.create({
+      data: { companyId, forumId: experienceId, enabled: true },
+    });
+    return NextResponse.json({ binding: created });
+  } catch (err: any) {
+    // Surface a helpful error so you can see missing table / permission issues
+    return NextResponse.json(
+      { error: err?.message || "Unknown DB error", code: "prisma_error" },
+      { status: 500 }
+    );
+  }
 }
 
 

@@ -96,8 +96,16 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ companyId: resolvedId, experienceId: selected }),
               });
-              if (res.ok) setSaveMsg("Saved. You can now view posts via the experience route.");
-              else setSaveMsg("Failed to save binding; check DB connection and permissions.");
+              if (res.ok) {
+                setSaveMsg("Saved. You can now view posts via the experience route.");
+              } else {
+                let msg = "Failed to save binding; check DB connection and permissions.";
+                try {
+                  const j = await res.json();
+                  if (j?.error) msg = `Failed to save: ${j.error}`;
+                } catch {}
+                setSaveMsg(msg);
+              }
             }}
           >
             Save as forum experience
