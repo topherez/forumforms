@@ -97,7 +97,7 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
                 body: JSON.stringify({ companyId: resolvedId, experienceId: selected }),
               });
               if (res.ok) {
-                setSaveMsg("Saved. You can now view posts via the experience route.");
+                setSaveMsg("Saved. View member feed below.");
               } else {
                 let msg = "Failed to save binding; check DB connection and permissions.";
                 try {
@@ -112,6 +112,11 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
           </button>
           {saveMsg && <div className="text-xs text-gray-600">{saveMsg}</div>}
         </div>
+        {selected && (
+          <div className="pt-2">
+            <a className="text-indigo-600 underline" href={`/experience/${selected}`}>Open member feed</a>
+          </div>
+        )}
       </div>
     )}
     </>

@@ -26,6 +26,7 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
       : undefined
   );
   const experienceId = routeId || headerId || queryId;
+  const companyId = h.get("x-whop-company-id") || undefined;
 
   if (!experienceId) {
     // Fallback: try company context then let the user choose
@@ -71,11 +72,14 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
     );
   }
 
-  const listArgs: Record<string, unknown> = { experience_id: experienceId, limit: 20 };
-  const resp: any = await (sdk as any)?.forumPosts?.list?.(listArgs);
-
-  const posts: any[] = resp?.data ?? resp?.items ?? [];
-  const pageInfo = resp?.page_info ?? resp?.pageInfo ?? null;
+  // Prefer calling our own API which also supports resolving bound experience by company
+  const qs = new URLSearchParams(
+    experienceId ? { experienceId } : companyId ? { companyId } : {}
+  ).toString();
+  const apiResp = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/api/forum?${qs}`, { cache: "no-store" });
+  const json = (await apiResp.json().catch(() => ({}))) as any;
+  const posts: any[] = json?.posts ?? [];
+  const pageInfo = json?.pageInfo ?? null;
 
   return (
     <div className="p-4 space-y-4">
