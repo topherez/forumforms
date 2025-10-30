@@ -1,17 +1,37 @@
+import { headers } from "next/headers";
 import { getWhopSdk } from "@/lib/whop-sdk";
 
 interface PageProps {
   params: { companyId: string };
+  searchParams?: Record<string, string | string[] | undefined>;
 }
 
-export default async function DashboardForumsPage({ params }: PageProps) {
+export default async function DashboardForumsPage({ params, searchParams }: PageProps) {
   const sdk = getWhopSdk();
-  const companyId = params.companyId;
+  const normalize = (v?: string | null) => {
+    if (!v) return null;
+    if (v === "undefined") return null;
+    if (v.startsWith("[")) return null;
+    if (v.includes("companyId")) return null;
+    return v;
+  };
+  const routeCompanyId = normalize(params.companyId);
+  const queryCompanyId = normalize(
+    typeof searchParams?.companyId === "string"
+      ? (searchParams?.companyId as string)
+      : Array.isArray(searchParams?.companyId)
+      ? (searchParams?.companyId?.[0] as string)
+      : undefined
+  );
+  const h = await headers();
+  const headerCompanyId = normalize(h.get("x-whop-company-id"));
+  const envCompanyId = normalize(process.env.WHOP_COMPANY_ID || process.env.NEXT_PUBLIC_WHOP_COMPANY_ID || null);
+  const companyId = routeCompanyId || queryCompanyId || headerCompanyId || envCompanyId;
 
   if (!companyId || companyId.startsWith("[")) {
     return (
       <div className="p-4 text-sm text-gray-600">
-        Missing company ID. Ensure Dashboard path is set to <code>/dashboard/:companyId/forums</code>.
+        Missing company ID. Ensure Dashboard path is <code>/dashboard/:companyId/forums</code> or append <code>?companyId=biz_xxx</code>.
       </div>
     );
   }
