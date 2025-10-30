@@ -72,14 +72,23 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
     );
   }
 
-  // Prefer calling our own API which also supports resolving bound experience by company
-  const qs = new URLSearchParams(
-    experienceId ? { experienceId } : companyId ? { companyId } : {}
-  ).toString();
-  const apiResp = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/api/forum?${qs}`, { cache: "no-store" });
-  const json = (await apiResp.json().catch(() => ({}))) as any;
-  const posts: any[] = json?.posts ?? [];
-  const pageInfo = json?.pageInfo ?? null;
+  // If we have an explicit experienceId, use the SDK directly per docs:
+  // https://docs.whop.com/api-reference/forum-posts/list-forum-posts
+  let posts: any[] = [];
+  let pageInfo: any = null;
+  if (experienceId) {
+    const sdk = getWhopSdk();
+    const resp: any = await (sdk as any).forumPosts.list({ experience_id: experienceId, first: 20 });
+    posts = resp?.data ?? resp?.items ?? [];
+    pageInfo = resp?.page_info ?? resp?.pageInfo ?? null;
+  } else if (companyId) {
+    // Otherwise, fall back to bound experience via our API
+    const qs = new URLSearchParams({ companyId }).toString();
+    const apiResp = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/api/forum?${qs}`, { cache: "no-store" });
+    const json = (await apiResp.json().catch(() => ({}))) as any;
+    posts = json?.posts ?? [];
+    pageInfo = json?.pageInfo ?? null;
+  }
 
   return (
     <div className="p-4 space-y-4">

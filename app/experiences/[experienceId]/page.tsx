@@ -71,13 +71,19 @@ export default async function ExperienceForumPage({ params, searchParams }: Page
       </div>
     );
   }
-  const qs = new URLSearchParams(
-    experienceId ? { experienceId } : companyId ? { companyId } : {}
-  ).toString();
-  const apiResp = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/api/forum?${qs}`, { cache: "no-store" });
-  const json = (await apiResp.json().catch(() => ({}))) as any;
-  const posts: any[] = json?.posts ?? [];
-  const pageInfo = json?.pageInfo ?? null;
+  let posts: any[] = [];
+  let pageInfo: any = null;
+  if (experienceId) {
+    const resp: any = await (sdk as any).forumPosts.list({ experience_id: experienceId, first: 20 });
+    posts = resp?.data ?? resp?.items ?? [];
+    pageInfo = resp?.page_info ?? resp?.pageInfo ?? null;
+  } else if (companyId) {
+    const qs = new URLSearchParams({ companyId }).toString();
+    const apiResp = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH || ""}/api/forum?${qs}`, { cache: "no-store" });
+    const json = (await apiResp.json().catch(() => ({}))) as any;
+    posts = json?.posts ?? [];
+    pageInfo = json?.pageInfo ?? null;
+  }
 
   return (
     <div className="p-4 space-y-4">
