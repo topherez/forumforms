@@ -29,7 +29,7 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
       return;
     }
     setLoading(true);
-    fetch(`/api/company-forums?companyId=${encodeURIComponent(id)}`)
+    fetch(`/api/company-experiences?companyId=${encodeURIComponent(id)}`)
       .then(async (r) => {
         if (!r.ok) throw new Error(await r.text());
         return r.json();
@@ -62,11 +62,9 @@ export default function CompanyIdForm({ initial }: { initial?: string }) {
         <div className="text-xs text-gray-500">Resolved company: <span className="font-mono">{resolvedId}</span></div>
         <ul className="space-y-2">
           {experiences.map((e) => (
-            <li key={e.id} className="border p-3 rounded bg-white flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium">{e.name || e.id}</div>
-              </div>
-              <a className="text-indigo-600 hover:underline" href={`/experience/${e.id}`}>Open forum</a>
+            <li key={e.id} className="border p-3 rounded bg-white">
+              <div className="text-sm font-medium">{e.name || e.id}</div>
+              <div className="text-xs text-gray-500 font-mono">{e.id}</div>
             </li>
           ))}
           {experiences.length === 0 && (
