@@ -45,11 +45,15 @@ export default function ExperienceFeedClient({
     }
   }, [experienceId, initialCompanyId]);
 
-  // Fetch posts once we have an experience id
+  // Fetch posts; prefer companyId to use the bound forum experience
   useEffect(() => {
-    if (!experienceId) return;
+    const cid = initialCompanyId || null;
+    if (!cid && !experienceId) return;
     setError(null);
-    fetch(`/api/forum?experienceId=${encodeURIComponent(experienceId)}`)
+    const url = cid
+      ? `/api/forum?companyId=${encodeURIComponent(cid)}`
+      : `/api/forum?experienceId=${encodeURIComponent(experienceId as string)}`;
+    fetch(url)
       .then(async (r) => {
         const body = await r.text();
         let json: any = {};
@@ -62,7 +66,7 @@ export default function ExperienceFeedClient({
         setPageInfo(j?.pageInfo ?? null);
       })
       .catch((e) => setError(e?.message || "Unable to load posts for this experience."));
-  }, [experienceId]);
+  }, [experienceId, initialCompanyId]);
 
   if (!experienceId) {
     return (
@@ -84,7 +88,9 @@ export default function ExperienceFeedClient({
       <div className="text-xs text-gray-500">
         Request:
         <pre className="bg-gray-100 text-gray-800 rounded p-2 overflow-x-auto mt-1">
-{`GET /api/forum?experienceId=${experienceId}`}
+{initialCompanyId
+  ? `GET /api/forum?companyId=${initialCompanyId}`
+  : `GET /api/forum?experienceId=${experienceId}`}
         </pre>
       </div>
       <ul className="space-y-2">
