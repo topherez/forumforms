@@ -81,6 +81,12 @@ export default function ExperienceFeedClient({
   return (
     <div className="space-y-4">
       {error && <div className="text-sm text-red-600">{error}</div>}
+      <div className="text-xs text-gray-500">
+        Request:
+        <pre className="bg-gray-100 text-gray-800 rounded p-2 overflow-x-auto mt-1">
+{`GET /api/forum?experienceId=${experienceId}`}
+        </pre>
+      </div>
       <ul className="space-y-2">
         {posts.map((post) => (
           <li key={post.id} className="border p-3 rounded bg-white">
